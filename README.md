@@ -298,7 +298,7 @@ Please see the instructions [here](../Instructions/Anomaly_readme.md)
 
   - After the CloudFormation template is run, launch AWS Cloudshell and run the following CLI script to associate the phone number with the contact flow.
 
-  `  aws connect associate-phone-number-contact-flow --phone-number-id  <PhoneNumberId> --instance-id <ConnectInstsanceId> --contact-flow-id <ContactFlowID>   --region <region name>`
+  `aws connect associate-phone-number-contact-flow --phone-number-id  <PhoneNumberId> --instance-id <ConnectInstsanceId> --contact-flow-id <ContactFlowID>   --region <region name>`
 
 ### Deploy IoT Telemetry workflow
 
