@@ -337,7 +337,7 @@ Please see the instructions [here](../Instructions/Anomaly_readme.md)
 
 ### Deploy QnA Chat Bot workflow
 
-To deploy the QnABot chat experience please follow the instructions. https://gitlab.aws.dev/celijose/iot-qnabot-onecall/-/blob/main/Instructions/QnABot_readme.md
+To deploy the QnABot chat experience please follow the [instructions](Instructions/QnABot_readme.md)
 
 ## Deployment Validation (required)
 
