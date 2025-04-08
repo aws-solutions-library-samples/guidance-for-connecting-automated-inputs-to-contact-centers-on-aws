@@ -396,13 +396,13 @@ _Customers are responsible for making their own independent assessment of the in
 
 ## Authors
 
-Brandon Tyler
-Debaprasun Chakraborty
-Deepika Suresh
-Dinesh Ambu
-Judith Joseph
-Santosh Sampras
-Satveer Khurpa
-Steve Krems
-Sushma Gopalakrishnan
+Brandon Tyler\
+Debaprasun Chakraborty\
+Deepika Suresh\
+Dinesh Ambu\
+Judith Joseph\
+Santosh Sampras\
+Satveer Khurpa\
+Steve Krems\
+Sushma Gopalakrishnan\
 Wael Dimassi
