@@ -1,5 +1,5 @@
-
 # Guidance for Connecting Automated Inputs to Contact Centers on AWS
+
 This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolves common issues without human intervention.
 
 ## Table of Contents (required)
@@ -7,16 +7,16 @@ This Guidance shows how to connect automated data sources to contact center syst
 ### Required
 
 1. [Overview](#overview-required)
-    - [Cost](#cost)
+   - [Cost](#cost)
 2. [Prerequisites](#prerequisites-required)
-    - [Operating System](#operating-system-required)
+   - [Operating System](#operating-system-required)
 3. [Deployment Steps](#deployment-steps-required)
 4. [Deployment Validation](#deployment-validation-required)
 5. [Running the Guidance](#running-the-guidance-required)
 6. [Next Steps](#next-steps-required)
 7. [Cleanup](#cleanup-required)
 
-***Optional***
+**_Optional_**
 
 8. [FAQ, known issues, additional considerations, and limitations](#faq-known-issues-additional-considerations-and-limitations-optional)
 9. [Revisions](#revisions-optional)
@@ -24,11 +24,13 @@ This Guidance shows how to connect automated data sources to contact center syst
 11. [Authors](#authors-optional)
 
 ## Overview (required)
+
 This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolves common issues without human intervention.
 
 ![Architecture diagram](assets/images/AWS_IoT_QnABot_Onecall_Architecture.png)
 
 The architecture can be broadly divided into 5 workflows:
+
 - 1/ IoT Telemetry workflow
 - 2/ Error & Anomaly workflow
 - 3/ Agent Orchestration
@@ -38,112 +40,123 @@ The architecture can be broadly divided into 5 workflows:
 The workflows are illustrated below:
 
 ### 1/ IoT Telemetry workflow
+
 IoT devices are setup along with the simulator to publish telemetry data in IoT Core
 
 **Components**
 
 - **Amazon EC2**
-    - The IoT device simulator service runs on an EC2 instance to publish the telemetry data 
+
+  - The IoT device simulator service runs on an EC2 instance to publish the telemetry data
 
 - **AWS IoT Core**
-    - IoT devices are managed in AWS IoT Core
+
+  - IoT devices are managed in AWS IoT Core
 
 - **AWS IoT Rule**
-    - IoT Rules are part of AWS IoT Core service. 
-    - There are two IoT Rules: 
-        - 1/ if there is any error it invokes a Lambda function (iot-qnabot-onecall-error-handler) with error details, 
-        - 2/ telemetry data is sent to Amazon Data Firehose 
-
+  - IoT Rules are part of AWS IoT Core service.
+  - There are two IoT Rules:
+    - 1/ if there is any error it invokes a Lambda function (iot-qnabot-onecall-error-handler) with error details,
+    - 2/ telemetry data is sent to Amazon Data Firehose
 
 ### 2/ Error & Anomaly workflow
-IoT telemetry data is processed by streaming data processing pipelines. If errors are emitted by the IoT devices Bedrock agent is invoked to take actions as described in the Troubleshooting guide in the Knowledge Base. Telemetry data is processed to detect any anomalies using ML models in Sagemaker. Bedrock agent is invoked when anomalies are found. Bedrock agent finds possible resolution for the anomalies from knowledge bases and notifies the contact center with relevant information. 
+
+IoT telemetry data is processed by streaming data processing pipelines. If errors are emitted by the IoT devices Bedrock agent is invoked to take actions as described in the Troubleshooting guide in the Knowledge Base. Telemetry data is processed to detect any anomalies using ML models in Sagemaker. Bedrock agent is invoked when anomalies are found. Bedrock agent finds possible resolution for the anomalies from knowledge bases and notifies the contact center with relevant information.
 
 **Components**
 
 - **AWS Lambda function - iot-qnabot-onecall-error-handler**
-    - Invokes Bedrock agent with relevant details if any error is emitted by the IoT device
+
+  - Invokes Bedrock agent with relevant details if any error is emitted by the IoT device
 
 - **Amazon Data Firehose**
-    - Streams IoT telemetry data from devices 
+
+  - Streams IoT telemetry data from devices
 
 - **Amazon SageMaker Canvas**
-    - It is used to train the ML model to delect anomaly
+
+  - It is used to train the ML model to delect anomaly
 
 - **AWS Lambda function - iot-qnabot-onecall-anomaly-inference**
-    - Processes all telemetry data in S3 for a provided look back period to create features for anomaly detection model
-    - Writes processed data back to S3
-    - Triggers Sagemaker batch transform for running inference on processed data 
+
+  - Processes all telemetry data in S3 for a provided look back period to create features for anomaly detection model
+  - Writes processed data back to S3
+  - Triggers Sagemaker batch transform for running inference on processed data
 
 - **AWS Lambda function - iot-qnabot-onecall-inference-processor**
-    - Processes anomaly model detection inference output
-    - Writes processed inference output as CSV files to S3
+
+  - Processes anomaly model detection inference output
+  - Writes processed inference output as CSV files to S3
 
 - **AWS Lambda function - iot-qnabot-onecall-anomaly-handler**
-    - Reads inference output from S3 for a provided look back period
-    - Invokes Bedrock agent with relevant details if any anomalies were identified by ML model
-
+  - Reads inference output from S3 for a provided look back period
+  - Invokes Bedrock agent with relevant details if any anomalies were identified by ML model
 
 ### 3/ Agent Orchestration
+
 Bedrock agent can recieve 3 types of requests: 1/ ask to take action when error is emitted by a device, 2/ ask to take action when anomaly is detected, 3/ answer user queries about the error, anolamly or telemetry data
 
 **Components**
 
 - **Amazon Bedrock Agent**
-    - Bedrock agent has a Knowldege Base and 2 action groups
-    - The Knowledge Base contains the Troubleshooting guide. It has the error details, troubleshooting steps, actions by individual error or anomaly 
-    - One of the action groups takes actions based on the error or anomaly
-    - The other action groups responds to user queries
 
+  - Bedrock agent has a Knowldege Base and 2 action groups
+  - The Knowledge Base contains the Troubleshooting guide. It has the error details, troubleshooting steps, actions by individual error or anomaly
+  - One of the action groups takes actions based on the error or anomaly
+  - The other action groups responds to user queries
 
 - **AWS Lambda function - iot-qnabot-onecall-triage**
-    - It can take 3 actions based on the ask:
-        - 1/ log ticket in the error table in DynamoDB, sends email to the user
-        - 2/ call the Amazon Connect Contact Flow to initiate a voice call to the site operator
-        - 3/ call AWS IoT Core and publish a message to clear the fault
+
+  - It can take 3 actions based on the ask:
+    - 1/ log ticket in the error table in DynamoDB, sends email to the user
+    - 2/ call the Amazon Connect Contact Flow to initiate a voice call to the site operator
+    - 3/ call AWS IoT Core and publish a message to clear the fault
 
 - **AWS Lambda function - iot-qnabot-onecall-user-query**
-    - It can take 2 actions based on the ask:
-        - 1/ fetch ticket data from the error table in DynamoDB
-        - 2/ fetch telemetry data from the S3 bucket
 
+  - It can take 2 actions based on the ask:
+    - 1/ fetch ticket data from the error table in DynamoDB
+    - 2/ fetch telemetry data from the S3 bucket
 
 - **Amazon Bedrock KnowledgeBase**
-    - It stores the embeddings for the Troubleshooting doc
-    - It uses OpenSearch Serverless vector DB
-
+  - It stores the embeddings for the Troubleshooting doc
+  - It uses OpenSearch Serverless vector DB
 
 ### 4/ Contact Center workflow
+
 Contact Center workflow is used to contact the site operators in case of high priority errors so that site operator can take necessary actions
 
 **Components**
 
 - **Amazon Connect Instance**
-    - Connect instance with Instance alias configurable through parameters
+
+  - Connect instance with Instance alias configurable through parameters
 
 - **Contact Flow**
-    - Initiates outbound outbound voice call to the site operator
-    - Includes flow logging
-    - Handles automated threshold violation notifications
-    - Contains message participant and disconnect actions
+
+  - Initiates outbound outbound voice call to the site operator
+  - Includes flow logging
+  - Handles automated threshold violation notifications
+  - Contains message participant and disconnect actions
 
 - **Phone Number**
-   - Provisions a DID (Direct Inward Dialing) phone number
-   - Region: United States (+1)
-   
+  - Provisions a DID (Direct Inward Dialing) phone number
+  - Region: United States (+1)
 - **Hours Of Operation**
-   - Name: Business Hours
-   - Configured for 24/7 operation
-   - Time Zone: America/New_York
-   - Covers all days of the week (Monday through Sunday)
-   - Operating hours: 00:00 to 23:59 daily
+
+  - Name: Business Hours
+  - Configured for 24/7 operation
+  - Time Zone: America/New_York
+  - Covers all days of the week (Monday through Sunday)
+  - Operating hours: 00:00 to 23:59 daily
 
 - **Queue**
-   - Creates a basic queue for call handling
-   - Links to the 24/7 hours of operation
-   - Configurable queue name through parameters
-
+  - Creates a basic queue for call handling
+  - Links to the 24/7 hours of operation
+  - Configurable queue name through parameters
 
 ### 5/ QnA Chat Bot
+
 Site operator interacts with the QnA Chat Bot to find the device details, error or anamaly information and telemetry data
 
 **Components**
@@ -151,45 +164,45 @@ Site operator interacts with the QnA Chat Bot to find the device details, error 
 Please refer to the QnA Bot [guidance](https://aws.amazon.com/solutions/implementations/qnabot-on-aws/) for all the components. For this guidance following are the prevalent components:
 
 - **Amazon Lex**
-    - It provides the chat interface for the user
+
+  - It provides the chat interface for the user
 
 - **Amazon DynamoDB**
-    - Device dimension and error data are stored in the Dynamo DB tables 
+
+  - Device dimension and error data are stored in the Dynamo DB tables
 
 - **Amazon Bedrock Knowledge Base**
-    - Troubleshooting guide is stored in the Knowledge Base
-
-
-
+  - Troubleshooting guide is stored in the Knowledge Base
 
 ### Cost ( required )
 
 _You are responsible for the cost of the AWS services used while running this Guidance. As of Apr, 2025, the cost for running this Guidance with the default settings in the US East (N. Virginia) AWS Region is approximately $1,470 per month._
 
 Assumptions:
+
 - Region = us-east- 1
 - IoT Devices = 4
-- Number of messages per device per min  = 1
+- Number of messages per device per min = 1
 - Error per device per month = 8
 - No of calls/month = 30
 
 The following table provides a sample cost breakdown for deploying this Guidance with the default parameters in the US East (N. Virginia) Region for one month.
 
-| AWS service  | Dimensions | Cost/Month [USD] |
-| ----------- | ------------ | ------------------- |
-| AWS IoT Core | 4 devices, 43200 messages per device per month, 1 KB message size, 2 rules - one for telemetry, one for error flow  | $ 0.24 |
-| Amazon EC2 | 1 t4g.nano instance to run the IoT simulator  | $ 3.87 |
-| AWS Lambda | 10,000 requeste per month, average duration per invocation 1 min | $ 5.00 |
-| Amazon Data Firehose | 4 records per min for ingestion, 1 KB message size | $ 0.02 |
-| Amazon S3 | 1 GB per month S3 standard storage | $ 1.06 |
-| Amazon SageMaker Canvas | Custom model training job for tabular data | $ 10.00 |
-| Amazon SageMaker | 720 batch transform jobs per month, 10 min per job, ml.m5.xlarge instance | $ 33.12 |
-| Amazon OpenSearch Serverless | Bedrock KB, 1 Indexing OCU, 1 Search and Query OCU, 1 GB data | $ 350.42 |
-| Amazon DynamoDB | 100 writes and 100 reads per day | $ 0.25 |
-| Amazon Bedrock | Bedrock Agent cost for 150 agentic flow per month, 5 invoke model (Anthropic Claude Sonnet 3) calls per agentic flow, input token = 62,500 and output tokens = 20,000 per call | $ 0.25 |
-| Amazon Connect | 1 DID Phone Number, Outbound call duration = 1 minute | $ 2.50 |
-| QnA Bot | Refer to [QnA Bot estimate](https://docs.aws.amazon.com/solutions/latest/qnabot-on-aws/cost.html), considered default basic deployment and Bedrock for text embedding and LLM Q&A | $ 696.06 |
-| **Total Cost** |  | **$ 1468.17** |
+| AWS service                  | Dimensions                                                                                                                                                                        | Cost/Month [USD] |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| AWS IoT Core                 | 4 devices, 43200 messages per device per month, 1 KB message size, 2 rules - one for telemetry, one for error flow                                                                | $ 0.24           |
+| Amazon EC2                   | 1 t4g.nano instance to run the IoT simulator                                                                                                                                      | $ 3.87           |
+| AWS Lambda                   | 10,000 requeste per month, average duration per invocation 1 min                                                                                                                  | $ 5.00           |
+| Amazon Data Firehose         | 4 records per min for ingestion, 1 KB message size                                                                                                                                | $ 0.02           |
+| Amazon S3                    | 1 GB per month S3 standard storage                                                                                                                                                | $ 1.06           |
+| Amazon SageMaker Canvas      | Custom model training job for tabular data                                                                                                                                        | $ 10.00          |
+| Amazon SageMaker             | 720 batch transform jobs per month, 10 min per job, ml.m5.xlarge instance                                                                                                         | $ 33.12          |
+| Amazon OpenSearch Serverless | Bedrock KB, 1 Indexing OCU, 1 Search and Query OCU, 1 GB data                                                                                                                     | $ 350.42         |
+| Amazon DynamoDB              | 100 writes and 100 reads per day                                                                                                                                                  | $ 0.25           |
+| Amazon Bedrock               | Bedrock Agent cost for 150 agentic flow per month, 5 invoke model (Anthropic Claude Sonnet 3) calls per agentic flow, input token = 62,500 and output tokens = 20,000 per call    | $ 0.25           |
+| Amazon Connect               | 1 DID Phone Number, Outbound call duration = 1 minute                                                                                                                             | $ 2.50           |
+| QnA Bot                      | Refer to [QnA Bot estimate](https://docs.aws.amazon.com/solutions/latest/qnabot-on-aws/cost.html), considered default basic deployment and Bedrock for text embedding and LLM Q&A | $ 696.06         |
+| **Total Cost**               |                                                                                                                                                                                   | **$ 1468.17**    |
 
 ## Prerequisites (required)
 
@@ -201,11 +214,9 @@ The following table provides a sample cost breakdown for deploying this Guidance
 
 The third party packages used are listed in [here](source/iot_simulator/requirements.txt)
 
-
 ### AWS account requirements (If applicable)
 
 - Amazon Bedrock Model access needs to be enabled. Also the AWS cli needs to be configured in the env. you are using.
-
 
 ### Supported Regions (if applicable)
 
@@ -213,14 +224,12 @@ The guidance code was tested in us-east-1. You can deploy this guidance in regio
 
 ## Deployment Steps (required)
 
-
 ### Clone the Repo and setup Source Bucket
-1. Git Clone "OR" Open Cloudshell. Upload the zipped guidance file (guidance.zip) using the Action menu on the top right corner.
-2. Unzip the file, go to guidance dir and run setup-script.sh: 
-*   ```unzip guidance.zip```
-*   ```cd guidance```
-*   ```chmod +x setup-script.sh```
-*   ```./setup-script.sh```
+
+1. Open CloudShell. Git Clone the repository.
+2. Go to the repo dir. Run setup-script.sh:
+
+- `./setup-script.sh`
 
 3. If the script has run successfully you'll get a message as: "SUCCESS: Following S3 bucket is created and deployment files are uploaded: iot-qnabot-onecall-$uuid". $uuid will have a unique id value. Please note the S3 bucket name.
 4. Go to S3 console and check the "iot-qnabot-onecall-$uuid" bucket. It should have the following structure:
@@ -249,125 +258,125 @@ iot-qnabot-onecall-$uuid/
 8. telemetry prefix is used to store raw, intermediate and processed telemetry data
 
 ### Train and register the Anomaly Model
+
 **Prerequisites**
-- You need a Amazon Sagemaker AI domain to build Anomaly model using Sagemaker Canvas. 
+
+- You need a Amazon Sagemaker AI domain to build Anomaly model using Sagemaker Canvas.
 
 - Check this quick start [guide](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html) if you need a new Sagemaker AI domain. The domain set up may take 10-15 minutes.
 
 - For existing Sagemaker AI domains, check [this guide](https://docs.aws.amazon.com/sagemaker/latest/dg/canvas-getting-started.html) to enable Sagemaker Canvas
 
 #### Train and Deploy new model
+
 Please see the instructions [here](../Instructions/Anomaly_readme.md)
 
-
 ### Deploy Contact Center workflow
+
 - **Steps to Follow**
-   - Navigate to AWS CloudFormation in your AWS Console
-   - Create a new stack using the template named [iot-qnabot-onecall-connect.yml](deployment/iot-qnabot-onecall-connect.yml)
-   - Provide values for the InstanceAlias and QueueName parameters
-   - Review and create the stack
+
+  - Navigate to AWS CloudFormation in your AWS Console
+  - Create a new stack using the template named [iot-qnabot-onecall-connect.yml](deployment/iot-qnabot-onecall-connect.yml)
+  - Provide values for the InstanceAlias and QueueName parameters
+  - Review and create the stack
 
 - **Outputs**
-   - ConnectInstanceAccessURL
-   - ConnectInstanceId
-   - ContactFlowId 
-   - SourcePhoneNumber
-   - PhoneNumberId
-   
+  - ConnectInstanceAccessURL
+  - ConnectInstanceId
+  - ContactFlowId
+  - SourcePhoneNumber
+  - PhoneNumberId
 - **Setup Email Domain**
-   - Go to the Amazon Connect Console. Select the instance created. On the left menu navigation, got Email option under Channels and communications.
-   - Click on Create a Service Role. Then click on Add Domain. 
-   - A Domain name will be auto-generated, copy the "Domain name" and click on Add.
 
+  - Go to the Amazon Connect Console. Select the instance created. On the left menu navigation, got Email option under Channels and communications.
+  - Click on Create a Service Role. Then click on Add Domain.
+  - A Domain name will be auto-generated, copy the "Domain name" and click on Add.
 
 - **Associate Phone Number**
-    - After the CloudFormation template is run, launch AWS Cloudshell and run the following CLI script to associate the phone number with the contact flow.
+
+  - After the CloudFormation template is run, launch AWS Cloudshell and run the following CLI script to associate the phone number with the contact flow.
 
   `  aws connect associate-phone-number-contact-flow --phone-number-id  <PhoneNumberId> --instance-id <ConnectInstsanceId> --contact-flow-id <ContactFlowID>   --region <region name>`
-        
 
 ### Deploy IoT Telemetry workflow
+
 - To deploy the IOT simulator, please read the instructions in the [readme](source/iot_simulator/README.md).
 - Make a note of the IOT Endpoint.
 
 ### Deploy Agent Orchestration workflow
+
 - Deploy the `iot-qnabot-onecall-agent.yml` cloudformation [template](deployment/iot-qnabot-onecall-agent.yml)
 - Provide the following input parameters:
-    * ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
-    * Provide your phone number with country code (eg: 1 for US) as DestinationPhoneNumber
-    * Provide your email address as RecipientEmailID
-    * Provide IOT Endpoint noted in "Deploy IoT Telemetry workflow" as IOTDataEndpoint
-    * Provide S3 bucket created as S3DeploymentBucket
+  - ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
+  - Provide your phone number with country code (eg: 1 for US) as DestinationPhoneNumber
+  - Provide your email address as RecipientEmailID
+  - Provide IOT Endpoint noted in "Deploy IoT Telemetry workflow" as IOTDataEndpoint
+  - Provide S3 bucket created as S3DeploymentBucket
 
 ### Deploy Error & Anomaly workflow
+
 - Deploy the `iot-qnabot-onecall-anomaly-workflow.yml` cloudformation [template](deployment/iot-qnabot-onecall-anomaly-workflow.yml)
 - Provide the following input parameters:
-  * Provide S3 bucket created as S3DeploymentBucket
-  * Get the following input parameters from "Deploy Agent Orchestration workflow": BedrockAgentAliasId, BedrockAgentId 
-  * Get the following input parameters from "Train and register the Anomaly Model" workflow: AnomalyDetectionModelName
+  - Provide S3 bucket created as S3DeploymentBucket
+  - Get the following input parameters from "Deploy Agent Orchestration workflow": BedrockAgentAliasId, BedrockAgentId
+  - Get the following input parameters from "Train and register the Anomaly Model" workflow: AnomalyDetectionModelName
 - Optional inputs
-  * TelemetryAnomalyThreshold. Default is 30
-  * TelemetryEvaluationPeriodHours. Default is 1
+  - TelemetryAnomalyThreshold. Default is 30
+  - TelemetryEvaluationPeriodHours. Default is 1
 - The stack deploys
-  * Firehose data streams for telemetry data and the IOT rules for it.
-  * Lambda functions for firehose data processing and anomaly detectiong jobs
-  * Lambda functions for error and anomaly handling 
-  * Related roles and event bridge rules
+  - Firehose data streams for telemetry data and the IOT rules for it.
+  - Lambda functions for firehose data processing and anomaly detectiong jobs
+  - Lambda functions for error and anomaly handling
+  - Related roles and event bridge rules
 - Outputs from the template
-  * Firehose stream name and ARN - IotQnabotOnecallTelemetryFirehoseStreamName, IotQnabotOnecallTelemetryFirehoseStreamARN
-  * Error handler lambda function ARN - IotQnaBotOnecallErrorHandlerLambdaArn
-  * Anomaly handler lambda function ARN - IotQnabotOnecallAnomalyHandlerLambdaArn
-  * Anomaly inference lambda function ARN - IotQnabotOnecallAnomalyInferenceLambdaArn
-  * Inference output cleaup lambda function ARN - IotQnabotOnecallCleanInferenceOutputLambdaArn
+  - Firehose stream name and ARN - IotQnabotOnecallTelemetryFirehoseStreamName, IotQnabotOnecallTelemetryFirehoseStreamARN
+  - Error handler lambda function ARN - IotQnaBotOnecallErrorHandlerLambdaArn
+  - Anomaly handler lambda function ARN - IotQnabotOnecallAnomalyHandlerLambdaArn
+  - Anomaly inference lambda function ARN - IotQnabotOnecallAnomalyInferenceLambdaArn
+  - Inference output cleaup lambda function ARN - IotQnabotOnecallCleanInferenceOutputLambdaArn
 
 ### Deploy QnA Chat Bot workflow
+
 To deploy the QnABot chat experience please follow the instructions. https://gitlab.aws.dev/celijose/iot-qnabot-onecall/-/blob/main/Instructions/QnABot_readme.md
 
-
-
-## Deployment Validation  (required)
+## Deployment Validation (required)
 
 - In the console make sure that all the cloudformation stacks have been deployed successfully.
-
 
 ## Running the Guidance (required)
 
 ### Run Error flow
-* Inject error in MQTT Client
-* Review the Knowledge Base (KB) for the actions
-* Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB), d/ clear the fault in IoT Core device shadow (if it's instructed in the KB)
+
+- Inject error in MQTT Client
+- Review the Knowledge Base (KB) for the actions
+- Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB), d/ clear the fault in IoT Core device shadow (if it's instructed in the KB)
 
 ### Run Anomaly flow
-* Inject anomaly in MQTT Client
-* Wait for an hour
-* Review the Knowledge Base (KB) for the actions
-* Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB)
+
+- Inject anomaly in MQTT Client
+- Wait for an hour
+- Review the Knowledge Base (KB) for the actions
+- Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB)
 
 ### Run queries against the QnA Bot
-* Open the QnA Bot interface
-* Ask question about a device: "Please tell me about the device aircon_1"
-* Ask question about an error: "Please tell me about the error W1"
-* Ask question about anomaly details: "Please tell me about the device $device_id, unique id $unique_id"
-    * *Replace $device_id and $unique_id with actual values retrieved from the device error table in DynamoDB or email*
 
+- Open the QnA Bot interface
+- Ask question about a device: "Please tell me about the device aircon_1"
+- Ask question about an error: "Please tell me about the error W1"
+- Ask question about anomaly details: "Please tell me about the device $device_id, unique id $unique_id"
+  - _Replace $device_id and $unique_id with actual values retrieved from the device error table in DynamoDB or email_
 
 ## Next Steps (required)
 
 1. you can integrate your existing anomaly setup with the solution.
 
-
 ## Cleanup (required)
 
-1. Delete the files and S3 bucket. Open Cloudshell. Go to guidance dir and run cleanup-script.sh. PLEASE ENSURE TO REPLACE $bucket-name WITH THE SOURCE S3 BUCKET NAME:
-*   ```cd guidance```
-*   ```chmod +x cleanup-script.sh``` 
-*   ```./cleanup-script.sh $bucket-name```
+1. Delete the files and S3 bucket. Open Cloudshell. Go to the cloned repo and run cleanup-script.sh. PLEASE ENSURE TO REPLACE $bucket-name WITH THE SOURCE S3 BUCKET NAME:
 
-2. Delete the dir from the Cloudshell environment
-*   ```cd ..```
-*   ```rm -r guidance```
-*   ```rm guidance.zip```
-*   ```rm -rf __MACOSX```
+- `./cleanup-script.sh $bucket-name`
+
+2. Delete the repo dir from the Cloudshell environment
 
 3. Make sure the Amazon SagemMaker Canvas model is deleted.
 
@@ -375,13 +384,7 @@ To deploy the QnABot chat experience please follow the instructions. https://git
 
 5. Make sure all the deployed cloudformation stacks are deleted.
 
-
-
-
-
 ## FAQ, known issues, additional considerations, and limitations (optional)
-
-
 
 ## Revisions (optional)
 
@@ -390,8 +393,6 @@ To deploy the QnABot chat experience please follow the instructions. https://git
 ## Notices (optional)
 
 **Example:**
-*Customers are responsible for making their own independent assessment of the information in this Guidance. This Guidance: (a) is for informational purposes only, (b) represents AWS current product offerings and practices, which are subject to change without notice, and (c) does not create any commitments or assurances from AWS and its affiliates, suppliers or licensors. AWS products or services are provided “as is” without warranties, representations, or conditions of any kind, whether express or implied. AWS responsibilities and liabilities to its customers are controlled by AWS agreements, and this Guidance is not part of, nor does it modify, any agreement between AWS and its customers.*
-
+_Customers are responsible for making their own independent assessment of the information in this Guidance. This Guidance: (a) is for informational purposes only, (b) represents AWS current product offerings and practices, which are subject to change without notice, and (c) does not create any commitments or assurances from AWS and its affiliates, suppliers or licensors. AWS products or services are provided “as is” without warranties, representations, or conditions of any kind, whether express or implied. AWS responsibilities and liabilities to its customers are controlled by AWS agreements, and this Guidance is not part of, nor does it modify, any agreement between AWS and its customers._
 
 ## Authors (optional)
-
