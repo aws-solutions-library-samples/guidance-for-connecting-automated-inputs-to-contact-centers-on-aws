@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Connect Instance Setup'
+
+Parameters:
+  InstanceAlias:
+    Type: String
+    Description: 'The alias for your Connect instance (must be unique across your account)'
+    Default: 'myconnect-1234'
+    AllowedPattern: '[a-z0-9-]+'
+    MinLength: 1
+    MaxLength: 62
+    ConstraintDescription: 'Instance alias can only contain lowercase letters, numbers, and hyphens'
+  
+  QueueName:
+    Type: String
+    Description: 'Name for the queue (must be unique within the instance)'
+    Default: 'MainQueue-1234'
+    MinLength: 1
+    MaxLength: 127
+
+Resources:
+  ConnectInstance:
+    Type: AWS::Connect::Instance
+    Properties:
+      IdentityManagementType: CONNECT_MANAGED
+      InstanceAlias: !Ref InstanceAlias
+      Attributes:
+        InboundCalls: true
+        OutboundCalls: true
+
+  BasicContactFlow:
+    Type: AWS::Connect::ContactFlow
+    DependsOn: ConnectInstance
+    Properties:
+      InstanceArn: !GetAtt ConnectInstance.Arn
+      Name: 'basic-inbound-flow'
+      Type: CONTACT_FLOW
+      Description: 'Basic inbound contact flow'
+      Content: |
+        {
+          "Version": "2019-10-30",
+          "StartAction": "9b5fc6f8-cb5c-4622-ad47-3ce78daec560",
+          "Metadata": {
+            "entryPointPosition": { "x": 7.2, "y": 88 },
+            "ActionMetadata": {
+              "9b5fc6f8-cb5c-4622-ad47-3ce78daec560": { "position": { "x": 114.4, "y": 87.2 } },
+              "6b80bca6-4a0f-418a-950b-0a8994dea985": { "position": { "x": 681.6, "y": 299.2 } },
+              "381d6f1b-9311-4d84-be1b-21b4326a250f": { "position": { "x": 368.8, "y": 157.6 } },
+              "25b2871b-0af5-419f-9823-10da9d44edce": { "position": { "x": 983.2, "y": 95.2 } }
+            },
+            "Annotations": []
+          },
+          "Actions": [
+            {
+              "Parameters": { "FlowLoggingBehavior": "Enabled" },
+              "Identifier": "9b5fc6f8-cb5c-4622-ad47-3ce78daec560",
+              "Type": "UpdateFlowLoggingBehavior",
+              "Transitions": { "NextAction": "381d6f1b-9311-4d84-be1b-21b4326a250f" }
+            },
+            {
+              "Parameters": { "Text": "This is an automated threshold violation notification. Here are the details:\n\nUnique ID: $.Attributes.UniqueID\nDevice ID: $.Attributes.deviceID\nError Code: $.Attributes.errorCode\nTroubleshooting steps:\n\n$.Attributes.troubleshootingSteps\n\nPlease attend to the site immediately.\n\nThank you." },
+              "Identifier": "381d6f1b-9311-4d84-be1b-21b4326a250f",
+              "Type": "MessageParticipant",
+              "Transitions": {
+                "NextAction": "6b80bca6-4a0f-418a-950b-0a8994dea985",
+                "Errors": [
+                  { "NextAction": "6b80bca6-4a0f-418a-950b-0a8994dea985", "ErrorType": "NoMatchingError" }
+                ]
+              }
+            },
+            {
+              "Parameters": {},
+              "Identifier": "6b80bca6-4a0f-418a-950b-0a8994dea985",
+              "Type": "DisconnectParticipant",
+              "Transitions": {}
+            }
+          ]
+        }
+
+  ConnectPhoneNumber:
+    Type: AWS::Connect::PhoneNumber
+    DependsOn: 
+      - BasicContactFlow
+      - ConnectInstance
+    Properties:
+      TargetArn: !GetAtt ConnectInstance.Arn
+      Type: DID
+      CountryCode: US
+      Description: 'Phone number for Connect Instance'
+      Prefix: '+1'
+      Tags:
+        - Key: Environment
+          Value: Production
+
+  BusinessHours:
+    Type: AWS::Connect::HoursOfOperation
+    DependsOn: ConnectInstance
+    Properties:
+      InstanceArn: !GetAtt ConnectInstance.Arn
+      Name: 'Business Hours'
+      Description: '24/7 Operation'
+      TimeZone: 'America/New_York'
+      Config:
+        - Day: MONDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: TUESDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: WEDNESDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: THURSDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: FRIDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: SATURDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+        - Day: SUNDAY
+          StartTime:
+            Hours: 0
+            Minutes: 0
+          EndTime:
+            Hours: 23
+            Minutes: 59
+
+  BasicQueue:
+    Type: AWS::Connect::Queue
+    DependsOn: 
+      - ConnectInstance
+      - BusinessHours
+    Properties:
+      InstanceArn: !GetAtt ConnectInstance.Arn
+      Name: !Ref QueueName
+      Description: 'Default Queue'
+      HoursOfOperationArn: !GetAtt BusinessHours.HoursOfOperationArn
+
+Outputs:
+  ConnectInstanceId:
+    Description: 'Connect Instance ID'
+    Value: !GetAtt ConnectInstance.Id
+    
+  ConnectInstanceAccessUrl:
+    Description: 'Connect Instance Access URL'
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/connect/home?region=${AWS::Region}#/instance/${ConnectInstance.Id}'
+  
+  SourcePhoneNumber:
+    Description: 'The actual phone number in E.164 format'
+    Value: !GetAtt ConnectPhoneNumber.Address
+
+  PhoneNumberId:
+    Description: 'The ID of the phone number resource'
+    Value: !Select 
+      - 1
+      - !Split 
+        - 'phone-number/'
+        - !GetAtt ConnectPhoneNumber.PhoneNumberArn
+    
+  ContactFlowId:
+     Description: 'Contact Flow ID'
+     Value: !Select 
+        - 1
+        - !Split 
+          - 'contact-flow/'
+          - !GetAtt BasicContactFlow.ContactFlowArn
+
+
+  

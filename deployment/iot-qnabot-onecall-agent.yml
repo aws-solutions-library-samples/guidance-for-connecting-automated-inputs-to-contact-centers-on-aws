@@ -1,0 +1,1068 @@
+Description: Stack for creating the IoT QnABot Bedrock Agent.
+
+Parameters:
+  FoundationModelName:
+    Type: String
+    Default: anthropic.claude-3-sonnet-20240229-v1:0
+
+  S3DeploymentBucket:
+    Description: Provide S3 bucket name that contains the data and configuration
+      files for this solution .
+    Type: String
+
+  ConnectInstanceAccessURL:
+    Description: Please add the URL from the above step "Deploy Contact Center workflow"
+    Type: String
+
+  ConnectInstanceId:
+    Description: Please add the instance ID from the above step "Deploy Contact
+      Center workflow"
+    Type: String
+
+  ContactFlowId:
+    Description:
+      Please add the contact flow ID from the above step "Deploy Contact
+      Center workflow"
+    Type: String
+
+  SourcePhoneNumber:
+    Description: Please provide phone number from the above step "Deploy Contact
+      Center workflow"
+    Type: String
+
+  SenderEmailID:
+    Description:
+      Please provide the sender email ID as notification@domain-name. Get
+      the domain name from the above step "Deploy Contact Center workflow"
+    Type: String
+
+  DestinationPhoneNumber:
+    Description: Please provide the destination phone number in the following format +CountryCodePhoneNumber (example +11234567890)
+    Type: String
+
+  RecipientEmailID:
+    Description: Please provide the Recipient Email ID
+    Type: String
+
+  IOTDataEndpoint:
+    Description: Please provide the Recipient Email ID
+    Type: String
+
+Resources:
+  # DynamoDB table - iot-qnabot-onecall-device-data
+  IoTQnAbotOnecallDynamoDBDeviceData:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: iot-qnabot-onecall-device-data
+      AttributeDefinitions:
+        - AttributeType: S
+          AttributeName: deviceid
+      KeySchema:
+        - KeyType: HASH
+          AttributeName: deviceid
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: false
+      ContributorInsightsSpecification:
+        Enabled: false
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+        RecoveryPeriodInDays: 35
+      WarmThroughput:
+        ReadUnitsPerSecond: 12000
+        WriteUnitsPerSecond: 4000
+      TableClass: STANDARD
+      DeletionProtectionEnabled: false
+      TimeToLiveSpecification:
+        Enabled: false
+      Tags: []
+
+  # Lambda Function to put items into the iot-qnabot-onecall-device-data table
+  PopulateDynamoDBFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt PopulateDynamoDBRole.Arn
+      Runtime: python3.9
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import boto3
+          import cfnresponse
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+          dynamodb = boto3.resource('dynamodb')
+
+          def lambda_handler(event, context):
+              logger.info('Event: %s', json.dumps(event))
+
+              # Setup sentinel to ensure we always send a response
+              response_sent = False
+
+              try:
+                  request_type = event['RequestType']
+
+                  # Always respond to Delete events with SUCCESS
+                  if request_type == 'Delete':
+                      logger.info('Delete request - sending success response')
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      response_sent = True
+                      return
+
+                  # Only process Create and Update events
+                  if request_type in ['Create', 'Update']:
+                      table_name = event['ResourceProperties']['TableName']
+                      table = dynamodb.Table(table_name)
+
+                      # The specific data to populate
+                      items = [
+                          {
+                              "deviceid": "aircon_4",
+                              "device_location_address": "Street 4",
+                              "device_location_city": "New York",
+                              "device_location_country": "US",
+                              "device_location_state": "NY",
+                              "device_location_zip": "10003",
+                              "siteowner": "Customer 4",
+                              "siteownercontact": "1234567893"
+                          },
+                          {
+                              "deviceid": "aircon_1",
+                              "device_location_address": "Street 1",
+                              "device_location_city": "San Diego",
+                              "device_location_country": "US",
+                              "device_location_state": "CA",
+                              "device_location_zip": "92130",
+                              "siteowner": "Customer 1",
+                              "siteownercontact": "1234567890"
+                          },
+                          {
+                              "deviceid": "aircon_3",
+                              "device_location_address": "Street 3",
+                              "device_location_city": "Seattle",
+                              "device_location_country": "US",
+                              "device_location_state": "WA",
+                              "device_location_zip": "98104",
+                              "siteowner": "Customer 3",
+                              "siteownercontact": "1234567892"
+                          },
+                          {
+                              "deviceid": "aircon_2",
+                              "device_location_address": "Street 2",
+                              "device_location_city": "Los Angeles",
+                              "device_location_country": "US",
+                              "device_location_state": "CA",
+                              "device_location_zip": "90001",
+                              "siteowner": "Customer 2",
+                              "siteownercontact": "1234567891"
+                          }
+                      ]
+
+                      # Use DynamoDB batch writer to efficiently add items
+                      with table.batch_writer() as batch:
+                          for item in items:
+                              batch.put_item(Item=item)
+
+                      logger.info(f"Successfully wrote {len(items)} items to DynamoDB")
+
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      response_sent = True
+
+              except Exception as e:
+                  logger.error('Error: %s', str(e))
+                  # Only send response if we haven't already
+                  if not response_sent:
+                      cfnresponse.send(event, context, cfnresponse.FAILED, {"Error": str(e)})
+                      response_sent = True
+
+              # Final safety check - if somehow we get here without sending response
+              if not response_sent:
+                  logger.warning("Reached end of function without sending response. Sending SUCCESS.")
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+
+  # IAM role to put items into the DDB table
+  PopulateDynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:PutItem
+                Resource: !GetAtt IoTQnAbotOnecallDynamoDBDeviceData.Arn
+
+  # Custom resource for populating the DDB table
+  PopulateDynamoDBCustomResource:
+    Type: Custom::PopulateDynamoDB
+    Properties:
+      ServiceToken: !GetAtt PopulateDynamoDBFunction.Arn
+      TableName: !Ref IoTQnAbotOnecallDynamoDBDeviceData
+    DependsOn: IoTQnAbotOnecallDynamoDBDeviceData
+
+  # DynamoDB table - iot-qnabot-onecall-device-error
+  IoTQnAbotOnecallDynamoDBDeviceError:
+    UpdateReplacePolicy: Retain
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      SSESpecification:
+        SSEEnabled: false
+      TableName: iot-qnabot-onecall-device-error
+      AttributeDefinitions:
+        - AttributeType: S
+          AttributeName: device_id
+        - AttributeType: S
+          AttributeName: unique_id
+      ContributorInsightsSpecification:
+        Enabled: false
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      WarmThroughput:
+        ReadUnitsPerSecond: 12000
+        WriteUnitsPerSecond: 4000
+      KeySchema:
+        - KeyType: HASH
+          AttributeName: unique_id
+        - KeyType: RANGE
+          AttributeName: device_id
+      DeletionProtectionEnabled: false
+      TableClass: STANDARD
+      Tags: []
+      TimeToLiveSpecification:
+        Enabled: false
+
+  # Bedrock Knowledge Base IAM Role
+  KBServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Join
+                  - ""
+                  - - "arn:aws:bedrock:"
+                    - !Ref AWS::Region
+                    - ":"
+                    - !Ref AWS::AccountId
+                    - ":knowledge-base/*"
+            Effect: Allow
+            Principal:
+              Service: bedrock.amazonaws.com
+        Version: "2012-10-17"
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Condition:
+                  StringEquals:
+                    aws:PrincipalAccount: !Ref AWS::AccountId
+                Effect: Allow
+                Resource: "*"
+            Version: "2012-10-17"
+          PolicyName: S3DataSourceAccess
+        - PolicyDocument:
+            Statement:
+              - Action: bedrock:InvokeModel
+                Effect: Allow
+                Resource: !Join
+                  - ""
+                  - - "arn:aws:bedrock:"
+                    - !Ref AWS::Region
+                    - "::foundation-model/*"
+            Version: "2012-10-17"
+          PolicyName: EmbeddingModelAccess
+        - PolicyDocument:
+            Statement:
+              - Action: aoss:APIAccessAll
+                Effect: Allow
+                Resource: !Join
+                  - ""
+                  - - "arn:aws:aoss:"
+                    - !Ref AWS::Region
+                    - ":"
+                    - !Ref AWS::AccountId
+                    - ":collection/*"
+            Version: "2012-10-17"
+          PolicyName: OpenSearchServerlessAccess
+      RoleName: IoTQnABotKnowledgeBaseServiceRole
+
+  # Lambda layer for create vector index function
+  VectorStoreIndexCreationLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.10
+      Content:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/lambda_layer.zip
+      Description: Dependencies for the vector store index creation function
+
+  # Lambda service trust relationship for create vector index function's role
+  vectorstorecreatevectorindexServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - !Join
+          - ""
+          - - "arn:"
+            - !Ref AWS::Partition
+            - ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+    DependsOn:
+      - VectorStoreIndexCreationLambdaLayer
+
+  # Lambda service for create vector index function
+  vectorstorecreatevectorindexServiceRoleDefaultPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - aoss:APIAccessAll
+              - aoss:BatchGetCollection
+              - aoss:BatchGetEffectiveLifecyclePolicy
+              - aoss:BatchGetLifecyclePolicy
+              - aoss:BatchGetVpcEndpoint
+              - aoss:CreateAccessPolicy
+              - aoss:CreateCollection
+              - aoss:CreateLifecyclePolicy
+              - aoss:CreateSecurityConfig
+              - aoss:CreateSecurityPolicy
+              - aoss:CreateVpcEndpoint
+              - aoss:DashboardsAccessAll
+              - aoss:DeleteAccessPolicy
+              - aoss:DeleteCollection
+              - aoss:DeleteLifecyclePolicy
+              - aoss:DeleteSecurityConfig
+              - aoss:DeleteSecurityPolicy
+              - aoss:DeleteVpcEndpoint
+              - aoss:GetAccessPolicy
+              - aoss:GetAccountSettings
+              - aoss:GetPoliciesStats
+              - aoss:GetSecurityConfig
+              - aoss:GetSecurityPolicy
+              - aoss:ListAccessPolicies
+              - aoss:ListCollections
+              - aoss:ListLifecyclePolicies
+              - aoss:ListSecurityConfigs
+              - aoss:ListSecurityPolicies
+              - aoss:ListTagsForResource
+              - aoss:ListVpcEndpoints
+              - aoss:TagResource
+              - aoss:UntagResource
+              - aoss:UpdateAccessPolicy
+              - aoss:UpdateAccountSettings
+              - aoss:UpdateCollection
+              - aoss:UpdateLifecyclePolicy
+              - aoss:UpdateSecurityConfig
+              - aoss:UpdateSecurityPolicy
+              - aoss:UpdateVpcEndpoint
+            Resource:
+              - !Sub arn:aws:aoss:${AWS::Region}:${AWS::AccountId}:collection/*
+              - !Sub arn:aws:aoss:${AWS::Region}:${AWS::AccountId}:access-policy/*
+              - !Sub arn:aws:aoss:${AWS::Region}:${AWS::AccountId}:security-policy/*
+              - !Sub arn:aws:aoss:${AWS::Region}:${AWS::AccountId}:index/*
+      PolicyName: vectorstorecreatevectorindexServiceRoleDefaultPolicy
+      Roles:
+        - !Ref vectorstorecreatevectorindexServiceRole
+    DependsOn:
+      - VectorStoreIndexCreationLambdaLayer
+
+  # Lambda function to create vector index in the Amazon Opensearch serverless collection
+  vectorstorecreatevectorindex:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/create_vector_index.zip
+      Environment:
+        Variables:
+          COLLECTION_ENDPOINT: !GetAtt vectorstoreaosscollection.CollectionEndpoint
+          VECTOR_INDEX_NAME: iot_qnabot_index
+          VECTOR_FIELD_NAME: vector
+          TEXT_FIELD: text
+          METADATA_FIELD: text-metadata
+      Handler: index.on_event
+      Layers:
+        - !Ref VectorStoreIndexCreationLambdaLayer
+      Role: !GetAtt vectorstorecreatevectorindexServiceRole.Arn
+      Runtime: python3.10
+      Timeout: 300
+    DependsOn:
+      - vectorstorecreatevectorindexServiceRoleDefaultPolicy
+      - vectorstorecreatevectorindexServiceRole
+      - VectorStoreIndexCreationLambdaLayer
+
+  # Amazon OpenSearch Serverless data access policy
+  vectorstoreaossdataaccesspolicy:
+    Type: AWS::OpenSearchServerless::AccessPolicy
+    Properties:
+      Description: Access policy for Collection iot-qnabot-vector-store
+      Name: iot-qnabot-vector-store-ap
+      Policy: !Join
+        - ""
+        - - |-
+            [
+              {
+                "Rules": [
+                  {
+                    "Resource": [
+                      "collection/iot-qnabot-vector-store"
+                    ],
+                    "Permission": [
+                      "aoss:CreateCollectionItems",
+                      "aoss:DeleteCollectionItems",
+                      "aoss:UpdateCollectionItems",
+                      "aoss:DescribeCollectionItems"
+                    ],
+                    "ResourceType": "collection"
+                  },
+                  {
+                    "Resource": [
+                      "index/iot-qnabot-vector-store/*"
+                    ],
+                    "Permission": [
+                      "aoss:CreateIndex",
+                      "aoss:DeleteIndex",
+                      "aoss:UpdateIndex",
+                      "aoss:DescribeIndex",
+                      "aoss:ReadDocument",
+                      "aoss:WriteDocument"
+                    ],
+                    "ResourceType": "index"
+                  }
+                ],
+                "Principal": [
+                  "
+          - !GetAtt vectorstorecreatevectorindexServiceRole.Arn
+          - |-
+            ",
+                  "
+          - !GetAtt KBServiceRole.Arn
+          - |-
+            "
+                ]
+              }
+            ]
+      Type: data
+
+  # Amazon OpenSearch Serverless network access policy
+  vectorstoreaossnetworkaccesspolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Description: Security policy for Collection iot-qnabot-vector-store
+      Name: iot-qnabot-vector-store-np
+      Policy: |-
+        [
+          {
+            "Description": "Public access for iot-qnabot-vector-store collection",
+            "Rules": [
+              {
+                "ResourceType": "dashboard",
+                "Resource": [
+                  "collection/iot-qnabot-vector-store"
+                ]
+              },
+              {
+                "ResourceType": "collection",
+                "Resource": [
+                  "collection/iot-qnabot-vector-store"
+                ]
+              }
+            ],
+            "AllowFromPublic": true
+          }
+        ]
+      Type: network
+
+  # Amazon OpenSearch Serverless encryption policy
+  vectorstoreaossencryptionpolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Description: Encryption policy for Collection iot-qnabot-vector-store
+      Name: iot-qnabot-vector-store-ep
+      Policy: |-
+        {
+          "Rules": [
+            {
+              "ResourceType": "collection",
+              "Resource": [
+                "collection/iot-qnabot-vector-store"
+              ]
+            }
+          ],
+          "AWSOwnedKey": true
+        }
+      Type: encryption
+
+  # Amazon OpenSearch Serverless collection
+  vectorstoreaosscollection:
+    Type: AWS::OpenSearchServerless::Collection
+    Properties:
+      Description: Vector store for IoT QnABot Onecall KB embeddings
+      Name: iot-qnabot-vector-store
+      Type: VECTORSEARCH
+    DependsOn:
+      - vectorstoreaossdataaccesspolicy
+      - vectorstoreaossencryptionpolicy
+      - vectorstoreaossnetworkaccesspolicy
+
+  # Create vector index in the AOSS collection
+  vectorstoreindexcreationresourceiotqnabotindex:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt vectorstorecreatevectorindex.Arn
+      AOSSIndexName: iot_qnabot_index
+      AOSSHost: !GetAtt vectorstoreaosscollection.CollectionEndpoint
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+
+  iotqnabotonecallkbknowledgebase:
+    Type: AWS::Bedrock::KnowledgeBase
+    Properties:
+      Description: iot-qnabot-onecall-kb
+      KnowledgeBaseConfiguration:
+        Type: VECTOR
+        VectorKnowledgeBaseConfiguration:
+          EmbeddingModelArn: !Join
+            - ""
+            - - "arn:aws:bedrock:"
+              - !Ref AWS::Region
+              - "::foundation-model/amazon.titan-embed-text-v2:0"
+      Name: iot-qnabot-onecall-kb
+      RoleArn: !GetAtt KBServiceRole.Arn
+      StorageConfiguration:
+        OpensearchServerlessConfiguration:
+          CollectionArn: !GetAtt vectorstoreaosscollection.Arn
+          FieldMapping:
+            MetadataField: text-metadata
+            TextField: text
+            VectorField: vector
+          VectorIndexName: iot_qnabot_index
+        Type: OPENSEARCH_SERVERLESS
+    DependsOn:
+      - vectorstoreindexcreationresourceiotqnabotindex
+
+  # Create Bedrock Data Source for Knowledge base
+  iotqnabotonecallkbBedrockKBDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      DataSourceConfiguration:
+        S3Configuration:
+          BucketArn: !Sub arn:aws:s3:::${S3DeploymentBucket}
+          InclusionPrefixes:
+            - "knowledge-base/"
+        Type: S3
+      Description: Bedrock Knowledgebase DataSource Configuration
+      KnowledgeBaseId: !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseId
+      Name: iot-qnabot-onecall-data-source
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: FIXED_SIZE
+          FixedSizeChunkingConfiguration:
+            MaxTokens: 1024
+            OverlapPercentage: 30
+
+  # Create log group for Bedrock KB logging
+  iotqnabotonecallkbkbloggroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join
+        - ""
+        - - /aws/vendedlogs/bedrock/iot-qnabot-kb-
+          - !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseId
+      RetentionInDays: 1
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+
+  iotqnabotonecallkbkbloggroupPolicyResourcePolicy:
+    Type: AWS::Logs::ResourcePolicy
+    Properties:
+      PolicyDocument: !Join
+        - ""
+        - - '{"Statement":[{"Action":["logs:CreateLogStream","logs:PutLogEvents"],"Condition":{"StringEquals":{"aws:SourceAccount":"'
+          - !Ref AWS::AccountId
+          - '"},"ArnLike":{"aws:SourceArn":"arn:aws:logs:'
+          - !Ref AWS::Region
+          - ":"
+          - !Ref AWS::AccountId
+          - ':delivery-source:iot_qnabot_kb_log_delivery_source"}},"Effect":"Allow","Principal":{"Service":"delivery.logs.amazonaws.com"},"Resource":"'
+          - !GetAtt iotqnabotonecallkbkbloggroup.Arn
+          - '","Sid":"AWSLogDeliveryWriteBedrockKB20240719"}],"Version":"2012-10-17"}'
+      PolicyName: QnAAgentStackiotqnabotonecallkbkbloggroupPolicy
+
+  iotqnabotonecallkbkblogsdeliverydestination:
+    Type: AWS::Logs::DeliveryDestination
+    Properties:
+      DestinationResourceArn: !GetAtt iotqnabotonecallkbkbloggroup.Arn
+      Name: !Join
+        - ""
+        - - kb-logs-delivery-destination-
+          - !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseId
+
+  iotqnabotonecallkbkblogsdeliverysource:
+    Type: AWS::Logs::DeliverySource
+    Properties:
+      LogType: APPLICATION_LOGS
+      Name: iot_qnabot_kb_log_delivery_source
+      ResourceArn: !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseArn
+    Metadata:
+      aws:cdk:path: QnAAgentStack/iot-qnabot-onecall-kb/kb_logs_delivery_source
+
+  # Create Lambda execution role for Bedrock Agent action groups
+  agentactionsServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - !Join
+          - ""
+          - - "arn:"
+            - !Ref AWS::Partition
+            - ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:*
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${AWS::AccountId}:*
+        - PolicyName: ConnectAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - connect:StartOutboundVoiceContact
+                Resource:
+                  - !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:*
+        - PolicyName: SESAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource:
+                  - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:*
+        - PolicyName: IoTDataAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:Publish
+                  - iot-data:Publish
+                Resource:
+                  - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:*
+
+  # Create Lambda function for Bedrock Agent Action group - iot-qnabot-onecall-triage
+  # This section will change after creating template for Contact center resources. Currently the values are hardcoded
+  agentactionsonecalltriage:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-triage.zip
+      Environment:
+        Variables:
+          CONTACT_FLOW_ID: !Ref ContactFlowId
+          DESTINATION_PHONE_NO: !Ref DestinationPhoneNumber
+          INSTANCE_ID: !Ref ConnectInstanceId
+          IOT_DATA_ENDPOINT: !Ref IOTDataEndpoint
+          IOT_DEVICE_ERROR_TABLE: !Ref IoTQnAbotOnecallDynamoDBDeviceError
+          RECIPIENT_EMAIL_ID: !Ref RecipientEmailID
+          SENDER_EMAIL_ID: !Ref SenderEmailID
+          SOURCE_PHONE_NO: !Ref SourcePhoneNumber
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt agentactionsServiceRole.Arn
+      Runtime: python3.10
+      Timeout: 300
+    DependsOn:
+      - agentactionsServiceRole
+
+  # Allow Bedrock access the 'iot-qnabot-onecall-triage' action group's lambda function
+  agentactionsonecalltriageAllowBedrockInvocation:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt agentactionsonecalltriage.Arn
+      Principal: bedrock.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt iotqnabotonecallagent.AgentArn
+
+  # Create Lambda function for Bedrock Agent Action group - iot-qna-bot-user-query
+  agentactionsuserquery:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-user-query.zip
+      Environment:
+        Variables:
+          TELEMETRY_ANOMALY_S3_BUCKET: !Ref S3DeploymentBucket
+          IOT_DEVICE_ERROR_TABLE: !Ref IoTQnAbotOnecallDynamoDBDeviceError
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt agentactionsServiceRole.Arn
+      Runtime: python3.10
+      Timeout: 300
+    DependsOn:
+      - agentactionsServiceRole
+
+  # Allow Bedrock access the 'iot-qna-bot-user-query' action group's lambda function
+  agentactionsuserqueryAllowBedrockInvocation:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt agentactionsuserquery.Arn
+      Principal: bedrock.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt iotqnabotonecallagent.AgentArn
+
+  # Create Bedrock Agent service role
+  iotqnabotonecallagentresourcerole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+            Effect: Allow
+            Principal:
+              Service: bedrock.amazonaws.com
+        Version: "2012-10-17"
+      Description: Agent Resource Role for the IoT QnAbot onecall Bedrock Agent
+      RoleName: iot_qnabot_onecall_agent_resource_role
+
+  iotqnabotonecallagentresourceroleDefaultPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - bedrock:InvokeModel*
+              - bedrock:GetFoundationModel
+            Effect: Allow
+            Resource: !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/${FoundationModelName}
+          - Action: bedrock:Retrieve
+            Effect: Allow
+            Resource: !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseArn
+          - Action: lambda:InvokeFunction
+            Effect: Allow
+            Resource:
+              - !GetAtt agentactionsonecalltriage.Arn
+              - !Join
+                - ""
+                - - !GetAtt agentactionsonecalltriage.Arn
+                  - ":*"
+              - !GetAtt agentactionsuserquery.Arn
+              - !Join
+                - ""
+                - - !GetAtt agentactionsuserquery.Arn
+                  - ":*"
+        Version: "2012-10-17"
+      PolicyName: iotqnabotonecallagentresourceroleDefaultPolicy
+      Roles:
+        - !Ref iotqnabotonecallagentresourcerole
+
+  # Create IOT QnABot Bedrock Agent
+  iotqnabotonecallagent:
+    Type: AWS::Bedrock::Agent
+    Properties:
+      ActionGroups:
+        - ActionGroupExecutor:
+            Lambda: !GetAtt agentactionsonecalltriage.Arn
+          ActionGroupName: iot-qnabot-onecall-triage
+          Description:
+            Based on the type of action retrieved from knowledge base (KB), it
+            calls function. KB can send list of actions. Call the relevant
+            function one after another based on the action list.
+          FunctionSchema:
+            Functions:
+              - Description: logs the ticket in the backend database and notifies the user
+                Name: log_ticket
+                Parameters:
+                  device_id:
+                    Description: device_id
+                    Required: true
+                    Type: string
+                  time_stamp:
+                    Description: time_stamp
+                    Required: true
+                    Type: string
+                  start_end_datetime:
+                    Description: start and end date time in the following format 2025-02-17T10:00:00.000,2025-02-17T11:00:00.000
+                    Required: false
+                    Type: string
+                  error_code:
+                    Description: error_code
+                    Required: true
+                    Type: string
+                  troubleshooting_steps:
+                    Description: troubleshooting_steps
+                    Required: true
+                    Type: string
+                RequireConfirmation: DISABLED
+              - Description: calls the operator
+                Name: call_operator
+                Parameters:
+                  unique_id:
+                    Description: unique_id
+                    Required: true
+                    Type: string
+                  device_id:
+                    Description: device_id
+                    Required: true
+                    Type: string
+                  time_stamp:
+                    Description: time_stamp
+                    Required: true
+                    Type: string
+                  error_code:
+                    Description: error_code
+                    Required: true
+                    Type: string
+                  troubleshooting_steps:
+                    Description: troubleshooting_steps
+                    Required: true
+                    Type: string
+                RequireConfirmation: DISABLED
+              - Description: clears the fault from iot device
+                Name: clear_fault
+                Parameters:
+                  unique_id:
+                    Description: unique_id
+                    Required: true
+                    Type: string
+                  device_id:
+                    Description: device_id
+                    Required: true
+                    Type: string
+                  time_stamp:
+                    Description: time_stamp
+                    Required: true
+                    Type: string
+                  error_code:
+                    Description: error_code
+                    Required: true
+                    Type: string
+                  troubleshooting_steps:
+                    Description: troubleshooting_steps
+                    Required: true
+                    Type: string
+                RequireConfirmation: DISABLED
+        - ActionGroupExecutor:
+            Lambda: !GetAtt agentactionsuserquery.Arn
+          ActionGroupName: iot-qna-bot-user-query
+          Description:
+            Fetches the following 1/ ticket data based on the ticket or unique
+            id and device id 2/ telemetry data based on the device id
+          FunctionSchema:
+            Functions:
+              - Description: fetches ticket data based on the ticket or unique id and device id
+                Name: fetch_ticket_data
+                Parameters:
+                  unique_id:
+                    Description: unique_id
+                    Required: true
+                    Type: string
+                  device_id:
+                    Description: device_id
+                    Required: true
+                    Type: string
+                RequireConfirmation: DISABLED
+              - Description: fetches telemetry data based on the device id
+                Name: fetch_telemetry_data
+                Parameters:
+                  unique_id:
+                    Description: unique_id
+                    Required: true
+                    Type: string
+                  device_id:
+                    Description: device_id
+                    Required: true
+                    Type: string
+                RequireConfirmation: DISABLED
+
+      AgentName: iot-qnabot-onecall-agent
+      AgentResourceRoleArn: !GetAtt iotqnabotonecallagentresourcerole.Arn
+      AutoPrepare: true
+      Description:
+        This is a QnA bot agent that takes actions based on device error,
+        anomaly or user request
+      FoundationModel: !Ref FoundationModelName
+      Instruction: |
+        You are a HVAC agent. You take action based on the request sent to you:
+
+        1. If you are asked to take action based on the error details, you refer to the <error> section below and act accordingly
+        2. If you are asked to take action based on the anomaly details, you refer to the <anomaly> section below and act accordingly
+        3. If you get a user query about error, telemetry or anomaly, you refer to the <user query> section below and act accordingly
+
+        You think step by step and take action.
+
+        <error>
+        If you get an error code along with device id and other information, you do the following:
+
+        1. You look at the knowledge base to find the details for the error code, troubleshooting steps and action
+        2. The knowledge base contains individual sections by error code. The section is demarcated by ## mark down
+        3. Please separate out the troubleshooting steps and action for the specific error code that you received. Do not get the troubleshooting steps and action for other error codes
+        4. You call the iot-qnabot-onecall-triage action group. You take action based on the action list retrieved from step 3. You call relevant functions of iot-qnabot-onecall-triage action group one by one and perform the job
+        </error>
+
+        <anomaly>
+        If you get an anomaly error code along with device id and other information, you do the following:
+
+        1. You look at the knowledge base to find the details for the error code, troubleshooting steps and action
+        2. The knowledge base contains individual sections by error code. The section is demarcated by ## mark down
+        3. Please separate out the troubleshooting steps and action for the specific error code that you received. Do not get the troubleshooting steps and action for other error codes
+        4. You call the iot-qnabot-onecall-triage action group. You take action based on the action list retrieved from step 3. You call relevant functions of iot-qnabot-onecall-triage action group one by one and perform the job
+        </anomaly>
+
+        <user query>
+        If you get an user query about device data or anomaly, you call the iot-qna-bot-user-query action group and  do the following:
+
+        1. If the user asks about the error -
+        a. You query the error table to fetch the error data
+        b. You summarize the data that you fetched in above step and respond back to the user
+
+        2. If the user asks about the device telemetry -
+        a. You retrieve the telemetry data for the device
+        b. You summarize the data that you fetched in above step and respond back to the user
+
+
+        3. If the user asks about the anomaly -
+        a. You query the error table to fetch the error data
+        b. You retrieve the telemetry data for the device
+        c. You look at the knowledge base to find the details for the error code, troubleshooting steps and action
+        d. The knowledge base contains individual sections by error code. The section is demarcated by ## mark down
+        e. Please separate out the troubleshooting steps and action for the specific error code that you received. Do not get the troubleshooting steps and action for other error codes
+        f. DO NOT take any actions based on the steps in the knowledge base. ONLY REPORT them as mentioned in "g"
+        g. You summarize the data that you fetched in above steps and respond back to the user. You share the error data, share the summarized view of telemetry data and also share the troubleshooting steps.
+        </user query>
+
+        Before responding, please review the request, double check the steps as per the relevant section and then answer the question.
+
+      KnowledgeBases:
+        - Description: iot-qnabot-onecall-kb
+          KnowledgeBaseId: !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseId
+          KnowledgeBaseState: ENABLED
+      Tags:
+        project: iot-qnabot-onecall
+    DependsOn:
+      - iotqnabotonecallagentresourceroleDefaultPolicy
+      - iotqnabotonecallagentresourcerole
+
+  iotqnabotonecallagentalias:
+    Type: AWS::Bedrock::AgentAlias
+    Properties:
+      AgentAliasName: live
+      AgentId: !GetAtt iotqnabotonecallagent.AgentId
+      Description: !Join
+        - ""
+        - - "Tracking agent timestamp "
+          - !GetAtt iotqnabotonecallagent.PreparedAt
+    DependsOn:
+      - iotqnabotonecallagent
+
+Outputs:
+  iotqnabotonecallkbiotqnabotonecallkbid:
+    Description: "Knowledge Base Id: iot-qnabot-onecall-kb"
+    Value: !GetAtt iotqnabotonecallkbknowledgebase.KnowledgeBaseId
+    Export:
+      Name: iot-qnabot-onecall-kb-id
+
+  iotqnabotonecallkbiotqnabotonecallkbdatasourceid:
+    Description: Datasource Id:iot-qnabot-onecall-kb
+    Value: !GetAtt iotqnabotonecallkbBedrockKBDataSource.DataSourceId
+    Export:
+      Name: iot-qnabot-onecall-kb-datsource-id
+
+  # iotqnabotonecallkbiotqnabotonecallkbdatasourcebucketname:
+  #   Value: !Ref iotqnabotonecallkbdatasourcebucket
+  #   Export:
+  #     Name: iot-qnabot-onecall-kb-datasource-bucket
+
+  iotqnabotonecallagentid:
+    Description: IoT QnABot onecall Agent Id
+    Value: !GetAtt iotqnabotonecallagent.AgentId
+    Export:
+      Name: iot-qnabot-onecall-agent-id
+
+  iotqnabotonecallagentaliasid:
+    Description: IoT QnABot onecall Agent Alias Id
+    Value: !GetAtt iotqnabotonecallagentalias.AgentAliasId
+    Export:
+      Name: iot-qnabot-onecall-agent-alias-id
+
+  IoTQnAbotOnecallDeviceDataTable:
+    Description: Name of the DynamoDB table for storing device data
+    Value: !Ref IoTQnAbotOnecallDynamoDBDeviceData
+  IoTQnAbotOnecallDynamoDBTableDeviceDataArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt IoTQnAbotOnecallDynamoDBDeviceData.Arn
+
+  IoTQnAbotOnecallDeviceErrorTable:
+    Description: Name of the DynamoDB table for storing device error
+    Value: !Ref IoTQnAbotOnecallDynamoDBDeviceError
+  IoTQnAbotOnecallDeviceErrorTableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt IoTQnAbotOnecallDynamoDBDeviceError.Arn

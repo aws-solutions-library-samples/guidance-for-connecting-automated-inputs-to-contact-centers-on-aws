@@ -1,0 +1,380 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for IoT OneCall QnA Bot Anomaly workflow
+Parameters:
+  S3DeploymentBucket:
+    Description: Provide S3 bucket name that contains lambda scripts and configuration
+    Type: String
+  BedrockAgentAliasId:
+    Description: Provide Bedrock Agent Alias Id
+    Type: String
+  BedrockAgentId:
+    Description: Provide Bedrock Agent Id
+    Type: String
+  TelemetryAnomalyThreshold:
+    Description: Provide threshold for anomalies above which Bedrock Agent is invoked
+    Type: Number
+    Default: 30
+  TelemetryEvaluationPeriodHours:
+    Description: Provide look back period for anomaly detection in hours
+    Type: Number
+    Default: 1
+  AnomalyDetectionModelName:
+    Description: Provide model name for anomaly detection
+    Type: String
+Resources:
+  IotQnabotOnecallFirehoseDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+                - iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FirehoseS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
+        - PolicyName: FirehoseIoTAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - firehose:PutRecord
+                  - firehose:PutRecordBatch
+                Resource: '*'
+  IotQnabotOnecallTelemetryFirehoseStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: iot-qnabot-onecall-telemetry
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Sub arn:aws:s3:::${S3DeploymentBucket}
+        RoleARN: !GetAtt IotQnabotOnecallFirehoseDeliveryRole.Arn
+        BufferingHints:
+          IntervalInSeconds: 120
+          SizeInMBs: 5
+        FileExtension: .json
+        ErrorOutputPrefix: error
+        S3BackupMode: Disabled
+        Prefix: telemetry/firehose-streaming-data/
+  IotQnabotOnecallAnomalyInferenceLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SageMakerInvokeBatchTransform
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sagemaker:CreateTransformJob
+                Resource: '*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
+  IotQnabotOnecallAnomalyInferenceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: iot-qnabot-onecall-anomaly-inference
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt IotQnabotOnecallAnomalyInferenceLambdaRole.Arn
+      Runtime: python3.13
+      Timeout: 180
+      MemorySize: 512
+      Environment:
+        Variables:
+          ANOMALY_ML_MODEL_NAME: !Ref AnomalyDetectionModelName
+          S3_BUCKET_NAME: !Ref S3DeploymentBucket
+      Layers:
+        - arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python313:1
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-anomaly-inference.zip
+  IotQnabotOnecallAnomalyInferenceLambdaEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: iot-anomaly-inference-lambda-event-rule
+      Description: Event rule for iot-qnabot-onecall-anomaly-inference-lambda
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt IotQnabotOnecallAnomalyInferenceLambda.Arn
+          Id: IotAnomalyInferenceLambdaTarget
+  IotQnabotOnecallAnomalyInferenceLambdaEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt IotQnabotOnecallAnomalyInferenceLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt IotQnabotOnecallAnomalyInferenceLambdaEventRule.Arn
+  IotQnabotOnecallCleanInferenceOutputLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
+  IotQnabotOnecallCleanInferenceOutputLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: iot-qnabot-onecall-clean-inference-output
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt IotQnabotOnecallCleanInferenceOutputLambdaRole.Arn
+      Runtime: python3.13
+      Timeout: 120
+      MemorySize: 256
+      Layers:
+        - arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python313:1
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-clean-inference-output.zip
+  IotQnabotOnecallAnomalyHandlerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}
+                  - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:InvokeAgent
+                  - bedrock:RetrieveAndGenerate
+                Resource:
+                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*
+  IotQnabotOnecallAnomalyHandlerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Layers:
+        - arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python310:23
+      FunctionName: iot-qnabot-onecall-anomaly-handler
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt IotQnabotOnecallAnomalyHandlerLambdaRole.Arn
+      Runtime: python3.10
+      Timeout: 600
+      MemorySize: 128
+      Environment:
+        Variables:
+          BEDROCK_AGENT_ALIAS_ID: !Ref BedrockAgentAliasId
+          BEDROCK_AGENT_ID: !Ref BedrockAgentId
+          TELEMETRY_ANOMALY_S3_BUCKET: !Ref S3DeploymentBucket
+          TELEMETRY_ANOMALY_THRESHOLD: !Ref TelemetryAnomalyThreshold
+          TELEMETRY_EVALUATION_PERIOD_HOURS: !Ref TelemetryEvaluationPeriodHours
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-anomaly-handler.zip
+  IotQnabotOnecallAnomalyHandlerLambdaEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: iot-qnabot-anomaly-handler-event-rule
+      Description: Event rule for iot-qna-bot-anomaly-handler
+      State: ENABLED
+      ScheduleExpression: rate(1 hour)
+      Targets:
+        - Arn: !GetAtt IotQnabotOnecallAnomalyHandlerLambda.Arn
+          Id: IotQnABotOnecallAnomalyHandlerLambdaEventTarget
+  IotQnabotOnecallAnomalyHandlerLambdaEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt IotQnabotOnecallAnomalyHandlerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt IotQnabotOnecallAnomalyHandlerLambdaEventRule.Arn
+  IotQnaBotOnecallErrorHandlerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  IotQnaBotOnecallErrorHandlerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: iot-qnabot-onecall-error-handler
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt IotQnaBotOnecallErrorHandlerLambdaRole.Arn
+      Runtime: python3.13
+      Timeout: 600
+      MemorySize: 128
+      Environment:
+        Variables:
+          BEDROCK_AGENT_ALIAS_ID: !Ref BedrockAgentAliasId
+          BEDROCK_AGENT_ID: !Ref BedrockAgentId
+          TELEMETRY_ANOMALY_S3_BUCKET: !Ref S3DeploymentBucket
+          TELEMETRY_ANOMALY_THRESHOLD: !Ref TelemetryAnomalyThreshold
+          TELEMETRY_EVALUATION_PERIOD_HOURS: !Ref TelemetryEvaluationPeriodHours
+      Code:
+        S3Bucket: !Ref S3DeploymentBucket
+        S3Key: deployment/source/lambda/iot-qnabot-onecall-error-handler.zip
+  IotToLambdaRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: IOT_to_Lambda
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: SELECT * FROM 'aircon/errors'
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt IotQnaBotOnecallErrorHandlerLambda.Arn
+  IotToLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IotQnaBotOnecallErrorHandlerLambda
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      SourceArn: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:rule/IOT_to_Lambda
+  IotToFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: IotToFirehosePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - firehose:PutRecord
+                  - firehose:PutRecordBatch
+                Resource: !GetAtt IotQnabotOnecallTelemetryFirehoseStream.Arn
+  IotToFirehoseRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: IOT_to_Firehose
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: "SELECT * FROM 'aircon/telemetry'"
+        Actions:
+          - Firehose:
+              DeliveryStreamName: !Ref IotQnabotOnecallTelemetryFirehoseStream
+              RoleArn: !GetAtt IotToFirehoseRole.Arn
+              Separator: "\n"
+  IotQnabotOnecallS3BucketEventNotification:
+    Type: AWS::S3::Bucket
+    Properties:
+      Bucket: !Ref S3DeploymentBucket
+      NotificationConfiguration:
+          LambdaConfigurations:
+              - Event: s3.ObjectCreated:*
+                Filter:
+                  S3Key:
+                    Rules:
+                      - Name: prefix
+                        Value: telemetry/inference-output/
+                      - Name: suffix
+                        Value: .out
+                Function: !GetAtt IotQnabotOnecallCleanInferenceOutputLambda.Arn
+  IotQnabotOneCallS3BucketEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IotQnabotOnecallCleanInferenceOutputLambda
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub arn:aws:s3:::${S3DeploymentBucket}
+Outputs:
+  IotQnabotOnecallTelemetryFirehoseStreamName:
+    Description: Kinesis Firehose delivery stream for IoT telemetry data
+    Value: !Ref IotQnabotOnecallTelemetryFirehoseStream
+  IotQnabotOnecallTelemetryFirehoseStreamARN:
+    Description: ARN of the Kinesis Firehose delivery stream
+    Value: !GetAtt IotQnabotOnecallTelemetryFirehoseStream.Arn
+  IotQnabotOnecallAnomalyInferenceLambdaArn:
+    Description: Lambda function for anomaly inference
+    Value: !GetAtt IotQnabotOnecallAnomalyInferenceLambda.Arn
+  IotQnabotOnecallCleanInferenceOutputLambdaArn:
+    Description: Lambda function for cleaning anomaly inference output
+    Value: !GetAtt IotQnabotOnecallCleanInferenceOutputLambda.Arn
+  IotQnabotOnecallAnomalyHandlerLambdaArn:
+    Description: Lambda function for handling anomalies
+    Value: !GetAtt IotQnabotOnecallAnomalyHandlerLambda.Arn
+  IotQnaBotOnecallErrorHandlerLambdaArn:
+    Description: Lambda function for handling errors
+    Value: !GetAtt IotQnaBotOnecallErrorHandlerLambda.Arn
