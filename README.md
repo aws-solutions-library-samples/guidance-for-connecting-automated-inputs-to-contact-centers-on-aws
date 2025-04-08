@@ -2,7 +2,7 @@
 
 This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolves common issues without human intervention.
 
-## Table of Contents (required)
+## Table of Contents
 
 ### Required
 
@@ -23,7 +23,7 @@ This Guidance shows how to connect automated data sources to contact center syst
 10. [Notices](#notices-optional)
 11. [Authors](#authors-optional)
 
-## Overview (required)
+## Overview
 
 This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolves common issues without human intervention.
 
@@ -174,7 +174,7 @@ Please refer to the QnA Bot [guidance](https://aws.amazon.com/solutions/implemen
 - **Amazon Bedrock Knowledge Base**
   - Troubleshooting guide is stored in the Knowledge Base
 
-### Cost ( required )
+### Cost
 
 _You are responsible for the cost of the AWS services used while running this Guidance. As of Apr, 2025, the cost for running this Guidance with the default settings in the US East (N. Virginia) AWS Region is approximately $1,470 per month._
 
@@ -204,9 +204,9 @@ The following table provides a sample cost breakdown for deploying this Guidance
 | QnA Bot                      | Refer to [QnA Bot estimate](https://docs.aws.amazon.com/solutions/latest/qnabot-on-aws/cost.html), considered default basic deployment and Bedrock for text embedding and LLM Q&A | $ 696.06         |
 | **Total Cost**               |                                                                                                                                                                                   | **$ 1468.17**    |
 
-## Prerequisites (required)
+## Prerequisites
 
-### Operating System (required)
+### Operating System
 
 - This guidance was tested in [Cloudshell](https://aws.amazon.com/cloudshell/?trk=59bef63e-74bc-4cc2-94dc-31f3ce8c0a3f&sc_channel=ps&ef_id=CjwKCAjw-qi_BhBxEiwAkxvbkFsHTME1XyAiVthymCc4JxSubpDYrc9yB4XRviy_CojUJriaOcBkQRoCNvUQAvD_BwE:G:s&s_kwcid=AL!4422!3!658520965826!!!g!!!19852661720!149878722460&gbraid=0AAAAADjHtp9XzLYAuuCtgwfxbL_waFjjr&gclid=CjwKCAjw-qi_BhBxEiwAkxvbkFsHTME1XyAiVthymCc4JxSubpDYrc9yB4XRviy_CojUJriaOcBkQRoCNvUQAvD_BwE) and EC2 instance.
 
@@ -222,7 +222,7 @@ The third party packages used are listed in [here](source/iot_simulator/requirem
 
 The guidance code was tested in us-east-1. You can deploy this guidance in regions where all teh services used in the architecture are available. You can check for availability here. https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
 
-## Deployment Steps (required)
+## Deployment Steps
 
 ### Clone the Repo and setup Source Bucket
 
@@ -281,11 +281,13 @@ Please see the instructions [here](../Instructions/Anomaly_readme.md)
   - Review and create the stack
 
 - **Outputs**
+
   - ConnectInstanceAccessURL
   - ConnectInstanceId
   - ContactFlowId
   - SourcePhoneNumber
   - PhoneNumberId
+
 - **Setup Email Domain**
 
   - Go to the Amazon Connect Console. Select the instance created. On the left menu navigation, got Email option under Channels and communications.
@@ -339,11 +341,11 @@ Please see the instructions [here](../Instructions/Anomaly_readme.md)
 
 To deploy the QnABot chat experience please follow the [instructions](Instructions/QnABot_readme.md)
 
-## Deployment Validation (required)
+## Deployment Validation
 
 - In the console make sure that all the cloudformation stacks have been deployed successfully.
 
-## Running the Guidance (required)
+## Running the Guidance
 
 ### Run Error flow
 
@@ -366,11 +368,11 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
 - Ask question about anomaly details: "Please tell me about the device $device_id, unique id $unique_id"
   - _Replace $device_id and $unique_id with actual values retrieved from the device error table in DynamoDB or email_
 
-## Next Steps (required)
+## Next Steps
 
-1. you can integrate your existing anomaly setup with the solution.
+1. If you want, you can integrate your existing anomaly setup with the solution.
 
-## Cleanup (required)
+## Cleanup
 
 1. Delete the files and S3 bucket. Open Cloudshell. Go to the cloned repo and run cleanup-script.sh. PLEASE ENSURE TO REPLACE $bucket-name WITH THE SOURCE S3 BUCKET NAME:
 
@@ -384,15 +386,23 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
 
 5. Make sure all the deployed cloudformation stacks are deleted.
 
-## FAQ, known issues, additional considerations, and limitations (optional)
-
-## Revisions (optional)
+## Revisions
 
 [V1.0] Initial repository release.
 
-## Notices (optional)
+## Notices
 
-**Example:**
 _Customers are responsible for making their own independent assessment of the information in this Guidance. This Guidance: (a) is for informational purposes only, (b) represents AWS current product offerings and practices, which are subject to change without notice, and (c) does not create any commitments or assurances from AWS and its affiliates, suppliers or licensors. AWS products or services are provided “as is” without warranties, representations, or conditions of any kind, whether express or implied. AWS responsibilities and liabilities to its customers are controlled by AWS agreements, and this Guidance is not part of, nor does it modify, any agreement between AWS and its customers._
 
-## Authors (optional)
+## Authors
+
+Brandon Tyler
+Debaprasun Chakraborty
+Deepika Suresh
+Dinesh Ambu
+Judith Joseph
+Santosh Sampras
+Satveer Khurpa
+Steve Krems
+Sushma Gopalakrishnan
+Wael Dimassi
