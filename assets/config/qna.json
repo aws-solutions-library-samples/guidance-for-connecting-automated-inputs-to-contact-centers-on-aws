@@ -1,0 +1,98 @@
+﻿{
+  "qna": [
+    {
+      "descr": "Example slot type",
+      "resolutionStrategyRestrict": true,
+      "type": "slottype",
+      "qid": "SlotType_DeviceType",
+      "slotTypeValues": [
+        {
+          "samplevalue": "aircon_2"
+        },
+        {
+          "samplevalue": "aircon_3"
+        },
+        {
+          "samplevalue": "aircon_4"
+        },
+        {
+          "samplevalue": "aircon_1"
+        }
+      ]
+    },
+    {
+      "a": "Here is the information for the Device Type: {{Slots.DeviceType}}",
+      "slots": [
+        {
+          "slotName": "DeviceType",
+          "slotPrompt": "What is the name of the device you are looking for?",
+          "slotRequired": true,
+          "slotType": "SlotType_DeviceType",
+          "slotValueCached": true
+        }
+      ],
+      "enableQidIntent": true,
+      "l": "QNA:EXTCustomPYHook",
+      "type": "qna",
+      "qid": "IOT.DeviceInfo",
+      "q": [
+        "Tell me about the device {DeviceType}",
+        "site owner responsible for {DeviceType}",
+        "Who is the site owner for {DeviceType}",
+        "Where is the device {DeviceType} located"
+      ]
+    },
+    {
+      "a": "Session Attribute Set\n{{setSessionAttr 'x-amz-lex:codehook-timeout-ms' '120000'}}",
+      "type": "qna",
+      "qid": "IOT.SetSessionAttribute",
+      "sa": [
+        {
+          "text": "x-amz-lex:codehook-timeout-ms",
+          "value": "120000"
+        }
+      ],
+      "q": [
+        "session attribute",
+        "set attribute"
+      ]
+    },
+    {
+      "a": "An error occured in the QNA:EXTCustomPYHook lambda.  Please check the CloudWatch logs for errors.\n{{setSessionAttr 'x-amz-lex:codehook-timeout-ms' '120000'}}",
+      "slots": [
+        {
+          "slotName": "DeviceType",
+          "slotPrompt": "What is the name of the device you are looking for?",
+          "slotRequired": true,
+          "slotType": "SlotType_DeviceType",
+          "slotValueCached": true
+        }
+      ],
+      "l": "QNA:EXTCustomPYHook",
+      "type": "qna",
+      "qid": "IOT.Anomaly",
+      "sa": [
+        {
+          "text": "x-amz-lex:codehook-timeout-ms",
+          "value": "120000"
+        }
+      ],
+      "q": [
+        "anomaly details unique_id and device_id {DeviceType}",
+        "anomaly details for the user query unique_id 7bc90e1b-a5d4-4edc-a8df-b414dbf6337f device_id {DeviceType}"
+      ]
+    },
+    {
+      "a": "answer",
+      "alt": {
+        "markdown": "answer"
+      },
+      "l": "QNA:EXTCustomPYHook",
+      "type": "qna",
+      "qid": "IOT.TestMarkdown",
+      "q": [
+        "markdown"
+      ]
+    }
+  ]
+}

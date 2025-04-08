@@ -1,0 +1,33 @@
+
+{
+  "metadataAttributes": {
+    "company": {
+      "value": {
+        "type": "STRING",
+        "stringValue": "AnyCompany"
+      },
+      "includeForEmbedding": true
+    },
+    "created_date": {
+      "value": {
+        "type": "NUMBER",
+        "numberValue": 20250205
+      },
+      "includeForEmbedding": true
+    },
+    "author": {
+      "value": {
+        "type": "STRING",
+        "stringValue": "DC"
+      },
+      "includeForEmbedding": true
+    },
+    "origin": {
+      "value": {
+        "type": "STRING",
+        "stringValue": "Troubleshooting Overview"
+      },
+      "includeForEmbedding": true
+    }
+  }
+}
