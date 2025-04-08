@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+    <title>Air Conditioner Dashboard</title>
+    <style>
+      table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; }
+      #logPane {
+          width: 100%;
+          height: 300px;
+          border: 1px solid #ccc;
+          overflow-y: scroll;
+          background-color: #f9f9f9;
+          padding: 10px;
+      }
+    </style>
+</head>
+<body>
+    <h1>Air Conditioner Simulator Dashboard</h1>
+    
+    <button onclick="readShadows()">Read Shadows</button>
+    
+    <h3>Device Shadows</h3>
+    <table id="shadowTable">
+        <tr>
+            <th>Device</th>
+            <th>Outdoor Temp (°C)</th>
+            <th>Indoor Temp (°C)</th>
+            <th>Setpoint (°C)</th>
+            <th>Compressor Status</th>
+            <th>Mode</th>
+            <th>Wattage</th>
+            <th>Wattage Mode</th>
+            <th>Error Code</th>
+            <th>Filter Status</th>
+            <th>Runtime (hrs)</th>
+            <th>Version</th>
+        </tr>
+        {% for device, state in shadows.items() %}
+        <tr>
+            <td>{{ device }}</td>
+            <td>{{ state.outdoor_temperature_c or "N/A" }}</td>
+            <td>{{ state.indoor_temperature_c or "N/A" }}</td>
+            <td>{{ state.setpoint_temperature_c or "N/A" }}</td>
+            <td>{{ state.compressor_status or "N/A" }}</td>
+            <td>{{ state.mode or "N/A" }}</td>
+            <td>{{ state.power_consumption_watts or "N/A" }}</td>
+            <td>{{ state.wattage_mode or "N/A" }}</td>
+            <td>{{ state.error_code or "N/A" }}</td>
+            <td>{{ state.filter_status or "N/A" }}</td>
+            <td>{{ state.runtime_hours or "N/A" }}</td>
+            <td>{{ state.version or "N/A" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h3>Commands</h3>
+    <form id="commandForm">
+        <label>Device:
+            <input type="text" name="device" placeholder="e.g., aircon_1" required>
+        </label>
+        <select name="action" id="actionSelect">
+            <option value="inject_fault">Inject Fault</option>
+            <option value="clear_fault">Clear Fault</option>
+            <option value="set_wattage_mode">Set Wattage Mode</option>
+        </select>
+        <div id="faultDiv" style="display:none;">
+            <label>Fault Type:
+                <select name="fault_type">
+                    <option value="high_temperature">High Temperature</option>
+                    <option value="low_pressure">Low Pressure</option>
+                    <option value="compressor_failure">Compressor Failure</option>
+                </select>
+            </label>
+        </div>
+        <div id="wattageDiv" style="display:none;">
+            <label>Wattage Mode:
+                <select name="wattage_mode">
+                    <option value="normal">Normal</option>
+                    <option value="abnormal">Abnormal</option>
+                </select>
+            </label>
+        </div>
+        <button type="button" onclick="sendCommand()">Send Command</button>
+    </form>
+
+    <h3>Update Desired Temperature</h3>
+    <form id="tempForm">
+        <label>Device:
+            <input type="text" name="device" placeholder="e.g., aircon_1" required>
+        </label>
+        <label>Desired Temp (°C):
+            <input type="number" name="desired_temp" required>
+        </label>
+        <button type="button" onclick="updateTemp()">Update Temp</button>
+    </form>
+
+    <h3>Shadow Activity Log</h3>
+    <div id="logPane"></div>
+
+    <script>
+      // Show/hide extra fields based on selected command action.
+      const actionSelect = document.getElementById('actionSelect');
+      actionSelect.addEventListener('change', function(){
+          document.getElementById('faultDiv').style.display = (this.value === 'inject_fault') ? 'inline' : 'none';
+          document.getElementById('wattageDiv').style.display = (this.value === 'set_wattage_mode') ? 'inline' : 'none';
+      });
+
+      function sendCommand() {
+          const form = document.getElementById('commandForm');
+          const formData = new FormData(form);
+          fetch("/command", { method: "POST", body: formData })
+              .then(response => response.json())
+              .then(data => alert(data.message))
+              .catch(err => alert("Error: " + err));
+      }
+
+      function updateTemp() {
+          const form = document.getElementById('tempForm');
+          const formData = new FormData(form);
+          fetch("/update_temp", { method: "POST", body: formData })
+              .then(response => response.json())
+              .then(data => alert(data.message))
+              .catch(err => alert("Error: " + err));
+      }
+
+      function readShadows() {
+          // Fetch updated shadow states from the /read_shadows endpoint.
+          fetch("/read_shadows")
+              .then(response => response.json())
+              .then(shadows => {
+                  const table = document.getElementById('shadowTable');
+                  // Clear all rows except the header.
+                  table.innerHTML = `<tr>
+                      <th>Device</th>
+                      <th>Outdoor Temp (°C)</th>
+                      <th>Indoor Temp (°C)</th>
+                      <th>Setpoint (°C)</th>
+                      <th>Compressor Status</th>
+                      <th>Mode</th>
+                      <th>Wattage</th>
+                      <th>Wattage Mode</th>
+                      <th>Error Code</th>
+                      <th>Filter Status</th>
+                      <th>Runtime (hrs)</th>
+                      <th>Version</th>
+                  </tr>`;
+                  for (const [device, state] of Object.entries(shadows)) {
+                      const row = document.createElement("tr");
+                      row.innerHTML = `
+                          <td>${device}</td>
+                          <td>${state.outdoor_temperature_c || "N/A"}</td>
+                          <td>${state.indoor_temperature_c || "N/A"}</td>
+                          <td>${state.setpoint_temperature_c || "N/A"}</td>
+                          <td>${state.compressor_status || "N/A"}</td>
+                          <td>${state.mode || "N/A"}</td>
+                          <td>${state.power_consumption_watts || "N/A"}</td>
+                          <td>${state.wattage_mode || "N/A"}</td>
+                          <td>${state.error_code || "N/A"}</td>
+                          <td>${state.filter_status || "N/A"}</td>
+                          <td>${state.runtime_hours || "N/A"}</td>
+                          <td>${state.version || "N/A"}</td>
+                      `;
+                      table.appendChild(row);
+                  }
+              })
+              .catch(err => alert("Error reading shadows: " + err));
+      }
+
+      function fetchLogs() {
+          fetch("/shadow_logs")
+              .then(response => response.json())
+              .then(logs => {
+                  document.getElementById('logPane').innerText = logs.join("\n");
+              })
+              .catch(err => console.error("Error fetching logs:", err));
+      }
+
+      setInterval(fetchLogs, 5000);
+      fetchLogs();
+    </script>
+</body>
+</html>
