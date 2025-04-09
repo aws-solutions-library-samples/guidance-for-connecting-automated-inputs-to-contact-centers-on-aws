@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'AWS Connect Instance Setup'
+Description: 'AWS Connect Instance Setup -SO9002'
 
 Parameters:
   InstanceAlias:
