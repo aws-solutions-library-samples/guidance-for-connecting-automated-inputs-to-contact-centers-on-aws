@@ -65,6 +65,9 @@ Step-by-Step Instructions
 8. Select Version 1, click on Deploy, copy the "Model Name". DO NOT deploy the model. Click on Cancel. We are not creating any endpoint as we'll be running the model in batch mode. Model name is required to create the batch inference.
    ![Model Deploy](../assets/images/MyAnomalyDetectionModel_Deploy.png)
 
+9. Go back to Models page. Select "Deployable models" tab, click on the model to see the details. Capture the model name.
+   ![Model Name](../assets/images/ModelName.png)
+
 Troubleshooting Common issues and solutions:
 
     1. Data import fails: Verify S3 permissionsTraining errors: Check data format and completeness
