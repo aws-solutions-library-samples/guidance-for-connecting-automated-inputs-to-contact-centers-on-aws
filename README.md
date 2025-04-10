@@ -293,6 +293,7 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
   - Go to the Amazon Connect Console. Select the instance created. On the left menu navigation, got Email option under Channels and communications.
   - Click on Create a Service Role. Then click on Add Domain.
   - A Domain name will be auto-generated, copy the "Domain name" and click on Add.
+  - Go to Amazon Simple Email Service (SES) page and request [production access](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html)
 
 - **Associate Phone Number**
 
@@ -307,6 +308,7 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
 
 ### Deploy Agent Orchestration workflow
 
+- Enable LLM model access in the AWS Console for the following models: Amazon Titan Embed Text v1, Anthropic Claude Instant v1 and Anthropic Claude Sonnet 3.0
 - Deploy the `iot-qnabot-onecall-agent.yml` cloudformation [template](deployment/iot-qnabot-onecall-agent.yml)
 - Provide the following input parameters:
   - ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
