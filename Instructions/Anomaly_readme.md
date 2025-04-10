@@ -54,10 +54,14 @@ Step-by-Step Instructions
 2. The model building may take ~30 min
 3. Monitor the progress indicator
 4. Once the model is created, go to My Models in the left menu navigation. Click on the model name. For v1, click 3 dots and Add to Model Registry.
+   ![Add to Model Registry](../assets/images/MyAnomalyDetectionModel_AddtoRegistry.png)
 5. Add a model group name and click on Add.
+   ![Model Group Name](../assets/images/MyAnomalyDetectionModel_ModelGroup.png)
 6. Go to SageMaker AI Studio, click on the Models in the left menu navigration. You'll find the Model Group.
 7. Click on the Model Group name, select Version 1, click on 3 dots and Edit. In the Model Approval Status, select Approved and Save changes.
+   ![Model Group Ver Approved](../assets/images/ModelGroupVer_Approved.png)
 8. Select Version 1, click on Deploy, copy the "Model Name". DO NOT deploy the model. Click on Cancel. We are not creating any endpoint as we'll be running the model in batch mode. Model name is required to create the batch inference.
+   ![Model Deploy](../assets/images/MyAnomalyDetectionModel_Deploy.png)
 
 Troubleshooting Common issues and solutions:
 
