@@ -56,7 +56,9 @@ Step-by-Step Instructions
 4. Once the model is created, go to My Models in the left menu navigation. Click on the model name. For v1, click 3 dots and Add to Model Registry.
    ![Add to Model Registry](../assets/images/MyAnomalyDetectionModel_AddtoRegistry.png)
 5. Add a model group name and click on Add.
+
    ![Model Group Name](../assets/images/MyAnomalyDetectionModel_ModelGroup.png)
+
 6. Go to SageMaker AI Studio, click on the Models in the left menu navigration. You'll find the Model Group.
 7. Click on the Model Group name, select Version 1, click on 3 dots and Edit. In the Model Approval Status, select Approved and Save changes.
    ![Model Group Ver Approved](../assets/images/ModelGroupVer_Approved.png)
