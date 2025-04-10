@@ -269,7 +269,7 @@ iot-qnabot-onecall-$uuid/
 
 #### Train and Deploy new model
 
-Please see the instructions [here](../Instructions/Anomaly_readme.md)
+Please see the instructions [here](/Instructions/Anomaly_readme.md)
 
 ### Deploy Contact Center workflow
 
