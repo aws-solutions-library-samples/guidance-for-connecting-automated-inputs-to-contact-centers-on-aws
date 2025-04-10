@@ -86,13 +86,12 @@ def send_dataframe_to_s3(df, bucket_name, prefix):
     df = df.reindex(columns=new_columns)
     df["error_code"] = df["error_code"].fillna(value="None")
 
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
 
     # Create a buffer
     csv_buffer = StringIO()
     
     # Write the DataFrame to the buffer
-    df.to_csv(csv_buffer, index=False, header=False))
+    df.to_csv(csv_buffer, index=False, quoting=csv.QUOTE_NONNUMERIC)
     
     # Generate a timestamp for the file name
     timestamp = datetime.now().strftime("%Y/%m/%d/%H")

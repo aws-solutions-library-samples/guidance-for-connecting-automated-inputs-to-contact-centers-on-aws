@@ -27,21 +27,38 @@ def lambda_handler(event, context):
 
   #Get all the files in S3 to process
   for x in range(evaluation_period_hours):
-      previous_hour = current_datetime - datetime.timedelta(hours=(x+1))
-      prefix = previous_hour.strftime("telemetry/processed-output/%Y/%m/%d/%H")
+    previous_hour = current_datetime - datetime.timedelta(hours=(x+1))
+    prefix = previous_hour.strftime("telemetry/processed-output/%Y/%m/%d/%H")
 
-      print("S3 prefix: ", prefix)
+    print("S3 prefix: ", prefix)
 
-      #  Read all CSV files from S3
-      response = s3.list_objects_v2(Bucket=telemetry_s3Bucket, Prefix=prefix)
+    #  Read all CSV files from S3
+    response = s3.list_objects_v2(Bucket=telemetry_s3Bucket, Prefix=prefix)
 
-      for obj in response['Contents']:
-          if obj['Key'].endswith('.csv'):
-              print("Adding file to list of files to process: ", obj['Key'])
-              s3Paths.append("s3://" + telemetry_s3Bucket + "/" + obj['Key'])
+    if 'Contents' not in response:
+        print("No files found in path {}/{}!".format(telemetry_s3Bucket, prefix))
+        return {
+            'statusCode': 200,
+            'body': 'Success'
+        }
+
+    for obj in response['Contents']:
+        if obj['Key'].endswith('.csv'):
+            print("Adding file to list of files to process: ", obj['Key'])
+            s3Paths.append("s3://" + telemetry_s3Bucket + "/" + obj['Key'])
   
   # Read CSV files into Pandas dataframe
   telemetryData = wr.s3.read_csv(s3Paths)
+
+  # Check if error_code is null or empty
+  is_all_null = telemetryData['error_code'].isnull().all()
+
+  if is_all_null:
+    print("No errors and warnings found! Nothing to report!")
+    return {
+        'statusCode': 200,
+        'body': 'Success'
+    }
 
   # Select all rows except when error_code starts with E
   telemetryWarningData = telemetryData[~telemetryData['error_code'].str.startswith('E', na=False)]
@@ -54,6 +71,13 @@ def lambda_handler(event, context):
       count = ('timestamp', 'count')
   )
 
+  if telemetryAnamoliesCountByDeviceAndWarning.empty:
+    print("No anomalies found! Nothing to report!")
+    return {
+        'statusCode': 200,
+        'body': 'Success'
+    }
+
   agent_id = os.environ.get('BEDROCK_AGENT_ID')
   agent_alias_id = os.environ.get('BEDROCK_AGENT_ALIAS_ID')
   anomaly_threshold = int(os.environ.get('TELEMETRY_ANOMALY_THRESHOLD'))
@@ -61,22 +85,27 @@ def lambda_handler(event, context):
   print("Anomaly threshold: ", anomaly_threshold)
   
   for index, row in telemetryAnamoliesCountByDeviceAndWarning.iterrows():
+
     warning_rate = row['count']/telemetryDataCountByDevice[row['device_name']] * 100
     print("Device: ", row['device_name'])
     print("Warning rate: ", warning_rate)
 
-    if warning_rate > anomaly_threshold:
-      anomalyEventJson = {
-          "device_id": row['device_name'],
-          "error_code": row['error_code'],
-          "time_stamp": time.time(),
-          "start_end_datetime": start_datetime + "," + end_datetime
-      }
+    if warning_rate >= anomaly_threshold:
+        anomalyEventJson = {
+            "device_id": row['device_name'],
+            "error_code": row['error_code'],
+            "time_stamp": time.time(),
+            "start_end_datetime": start_datetime + "," + end_datetime
+        }
+    else:
+        print("Warning rate {} is less than anomaly threshold {} for device {} , skipping!".format(warning_rate, anomaly_threshold, row['device_name']))
+        continue
 
     anomalyEventPrompt = "Please take action based on the anomaly details: " + json.dumps(anomalyEventJson)
     print(anomalyEventPrompt)
 
     try:
+        print("Calling Bedrock agent to report anomalies!")
         # Invoke Bedrock agent with details of every anomaly
         response = bedrock_runtime.invoke_agent(
             agentId=agent_id,

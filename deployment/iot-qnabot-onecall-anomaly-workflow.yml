@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation template for IoT OneCall QnA Bot Anomaly workflow- SO9002
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFormation template for IoT OneCall QnA Bot Anomaly workflow
 Parameters:
   S3DeploymentBucket:
     Description: Provide S3 bucket name that contains lambda scripts and configuration
@@ -26,7 +26,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -37,7 +37,7 @@ Resources:
       Policies:
         - PolicyName: FirehoseS3Access
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -52,13 +52,13 @@ Resources:
                   - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
         - PolicyName: FirehoseIoTAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - firehose:PutRecord
                   - firehose:PutRecordBatch
-                Resource: '*'
+                Resource: "*"
   IotQnabotOnecallTelemetryFirehoseStream:
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
@@ -78,7 +78,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -89,15 +89,15 @@ Resources:
       Policies:
         - PolicyName: SageMakerInvokeBatchTransform
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - sagemaker:CreateTransformJob
-                Resource: '*'
+                Resource: "*"
         - PolicyName: S3Access
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -147,7 +147,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -158,7 +158,7 @@ Resources:
       Policies:
         - PolicyName: S3Access
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -185,7 +185,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -196,7 +196,7 @@ Resources:
       Policies:
         - PolicyName: S3Access
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -208,7 +208,7 @@ Resources:
                   - !Sub arn:aws:s3:::${S3DeploymentBucket}/*
         - PolicyName: BedrockAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -260,7 +260,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -305,11 +305,12 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: iot.amazonaws.com
       SourceArn: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:rule/IOT_to_Lambda
+
   IotToFirehoseRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -318,13 +319,14 @@ Resources:
       Policies:
         - PolicyName: IotToFirehosePolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - firehose:PutRecord
                   - firehose:PutRecordBatch
                 Resource: !GetAtt IotQnabotOnecallTelemetryFirehoseStream.Arn
+
   IotToFirehoseRule:
     Type: AWS::IoT::TopicRule
     Properties:
@@ -337,28 +339,6 @@ Resources:
               DeliveryStreamName: !Ref IotQnabotOnecallTelemetryFirehoseStream
               RoleArn: !GetAtt IotToFirehoseRole.Arn
               Separator: "\n"
-  IotQnabotOnecallS3BucketEventNotification:
-    Type: AWS::S3::Bucket
-    Properties:
-      Bucket: !Ref S3DeploymentBucket
-      NotificationConfiguration:
-          LambdaConfigurations:
-              - Event: s3.ObjectCreated:*
-                Filter:
-                  S3Key:
-                    Rules:
-                      - Name: prefix
-                        Value: telemetry/inference-output/
-                      - Name: suffix
-                        Value: .out
-                Function: !GetAtt IotQnabotOnecallCleanInferenceOutputLambda.Arn
-  IotQnabotOneCallS3BucketEventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref IotQnabotOnecallCleanInferenceOutputLambda
-      Principal: s3.amazonaws.com
-      SourceArn: !Sub arn:aws:s3:::${S3DeploymentBucket}
 Outputs:
   IotQnabotOnecallTelemetryFirehoseStreamName:
     Description: Kinesis Firehose delivery stream for IoT telemetry data

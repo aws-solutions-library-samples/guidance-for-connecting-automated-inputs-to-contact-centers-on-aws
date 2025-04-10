@@ -49,7 +49,7 @@ def lambda_handler(event, context):
 
 
 def preprocess_data(df):
-    df = df.iloc[:, :-2]
+    df = df.iloc[:, :-3]
     print("columns : " , df.columns)
 
     if 'normal' in df.columns:
@@ -57,8 +57,7 @@ def preprocess_data(df):
     else:
         print("Column 'normal' not found in the DataFrame")
 
-    #df['warning'] = df['anomaly'].apply(lambda x: 'W1' if x != 'normal' else '')
-    # Assuming your dataframe is called 'df'
+    # Add W1 for the anomaly rows :
     df['error_code'] = np.where(
         (df['error_code'].isna() | (df['error_code'] == 'None')) & (df['anomaly'] != 'normal'),
         'W1',
@@ -67,9 +66,5 @@ def preprocess_data(df):
 
     # Replace any remaining NaN values with 'None'
     df['error_code'] = df['error_code'].fillna('None')
-    
-    # Add W1 for the anomaly rows :
-    #df['error_code'] = df.apply(lambda row: 'W1' if row['anomaly'] != 'normal' and pd.notna(row['error_code']) else row['error_code'], axis=1)
-
 
     return df
