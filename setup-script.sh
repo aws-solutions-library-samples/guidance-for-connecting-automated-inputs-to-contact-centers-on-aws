@@ -23,7 +23,7 @@ cd ./source/training_data/
 aws s3 cp training_data.csv s3://$bucket_name/anomaly-ml-model/training-data/training_data.csv
 
 # Create "knowledge-base/" prefix and copy the file
-cd ../kb_doc/
+cd ../../assets/data/
 aws s3 cp Troubleshooting_Guide.docx s3://$bucket_name/knowledge-base/Troubleshooting_Guide.docx
 
 # Create "telemetry/firehose-streaming-data/" prefix
@@ -62,7 +62,7 @@ aws s3 cp lambda_layer.zip s3://$bucket_name/deployment/source/lambda/
 
 #iot-qnabot-onecall-anomaly-handler
 cd ../iot-qnabot-onecall-anomaly-handler
-zip iot-qnabot-onecall-anomaly-handler.zip index.py
+zip iot-qnabot-onecall-anomaly-handler.zip lambda_function.py
 aws s3 cp iot-qnabot-onecall-anomaly-handler.zip s3://$bucket_name/deployment/source/lambda/
 
 #iot-qnabot-onecall-anomaly-inference
