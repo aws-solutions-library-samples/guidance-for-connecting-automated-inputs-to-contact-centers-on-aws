@@ -15,17 +15,13 @@ This Guidance shows how to connect automated data sources to contact center syst
 5. [Running the Guidance](#Running-the-Guidance)
 6. [Next Steps](#Next-Steps)
 7. [Cleanup](#Cleanup)
-
-**_Optional_**
-
-8. [FAQ, known issues, additional considerations, and limitations](#faq-known-issues-additional-considerations-and-limitations-optional)
-9. [Revisions](#revisions-optional)
-10. [Notices](#notices-optional)
-11. [Authors](#authors-optional)
+8. [Revisions](#Revisions)
+9. [Notices](#Notices)
+10. [Authors](#Authors)
 
 ## Overview
 
-This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolves common issues without human intervention.
+This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolve common issues without human intervention.
 
 ![Architecture diagram](assets/images/AWS_IoT_QnABot_Onecall_Architecture.png)
 
