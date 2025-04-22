@@ -225,6 +225,7 @@ The guidance code was tested in us-east-1. You can deploy this guidance in regio
 1. Open CloudShell. Git Clone the repository.
 2. Go to the repo dir. Run setup-script.sh:
 
+- `chmod +x setup-script.sh`
 - `./setup-script.sh`
 
 3. If the script has run successfully you'll get a message as: "SUCCESS: Following S3 bucket is created and deployment files are uploaded: iot-qnabot-onecall-$uuid". $uuid will have a unique id value. Please note the S3 bucket name.
