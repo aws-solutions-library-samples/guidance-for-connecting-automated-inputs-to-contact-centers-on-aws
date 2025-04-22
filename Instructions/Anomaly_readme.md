@@ -39,7 +39,7 @@ Step-by-Step Instructions
 
 ### New Model Workflow
 
-1. Create New ModelFrom the Canvas dashboard, click "New model" Enter a descriptive name for your modelSelect "Predictive analysis" as the model typeClick "Create"
+1. Create New Model from the Canvas dashboard, click "New model" Enter a descriptive name for your model. Select "Predictive analysis" as the model type. Click "Create"
 
 ![Please see below](../assets/images/anomaly4.png) 2. Select your imported dataset. Choose the target column (wattage_mode) for anomaly detection
 
