@@ -6,15 +6,15 @@ This Guidance shows how to connect automated data sources to contact center syst
 
 ### Required
 
-1. [Overview](#overview-required)
-   - [Cost](#cost)
-2. [Prerequisites](#prerequisites-required)
-   - [Operating System](#operating-system-required)
-3. [Deployment Steps](#deployment-steps-required)
-4. [Deployment Validation](#deployment-validation-required)
-5. [Running the Guidance](#running-the-guidance-required)
-6. [Next Steps](#next-steps-required)
-7. [Cleanup](#cleanup-required)
+1. [Overview](#Overview)
+   - [Cost](#Cost)
+2. [Prerequisites](#Prerequisites)
+   - [Operating System](#Operating-System)
+3. [Deployment Steps](#Deployment-Steps)
+4. [Deployment Validation](#Deployment-Validation)
+5. [Running the Guidance](#Running-the-Guidance)
+6. [Next Steps](#Next-Steps)
+7. [Cleanup](#Cleanup)
 
 **_Optional_**
 
