@@ -17,9 +17,9 @@ Deployment Instructions
 - Please obtain the Bedrock knowlegde base ID "iotqnabotonecallkbiotqnabotonecallkbid" from the **Outputs** of the cloudformationstack that you have deployed with the file **iot-qnabot-onecall-agent.yml** to provide as a parameter to the QnABot AWS Cloudformation stack.
 - While deploying the cloudformation, plesae ensure that the input parameters match as per the screenshots below. Only change will be your knowledge base id created as part of "Deploy Agent Orchestration workflow"
 
-![Parameter List1](assets/images/QnABot_Cfn_Parameter1.png)
+![Parameter List1](../assets/images/QnABot_Cfn_Parameter1.png)
 
-![Parameter List2](assets/images/QnABot_Cfn_Parameter2.png)
+![Parameter List2](../assets/images/QnABot_Cfn_Parameter2.png)
 
 3. Continue to deploy the stack by selecting "Next" and checking the boxes to give permission to create the reousrces.
 
