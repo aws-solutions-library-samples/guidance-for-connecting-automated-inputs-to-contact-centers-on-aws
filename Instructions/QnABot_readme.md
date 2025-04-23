@@ -1,8 +1,6 @@
-
-
 **Prerequisites**:
 
-1. Enable [model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access-modify.html) in the console.
+1. Ensure following [model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access-modify.html) in the Amazon Bedrock console: Amazon Titan Embed Text v1, Anthropic Claude Instant v1, Anthropic Claude Haiku 3.0 and Anthropic Claude Sonnet 3.0
 
 Deployment Instructions
 
@@ -23,13 +21,11 @@ Deployment Instructions
 
 ![Parameter List2](assets/images/QnABot_Cfn_Parameter2.png)
 
-
 3. Continue to deploy the stack by selecting "Next" and checking the boxes to give permission to create the reousrces.
 
-4. In the console, navigate to Lambda and search for a function by the name "**EXTCustomPYHook**". Copy and paste the code from the file in this [repo](source/lambda/iot-qnabot-onecall-custom-hook/CustomPYHook.py) to the Lambda function editor. Re-Deploy the lambda function. 
+4. In the console, navigate to Lambda and search for a function by the name "**EXTCustomPYHook**". Copy and paste the code from the file in this [repo](source/lambda/iot-qnabot-onecall-custom-hook/CustomPYHook.py) to the Lambda function editor. Re-Deploy the lambda function.
 
 ![CustomPYHook](../assets/images/lambda_custompyhook.png)
-
 
 5. For the same Lambda function, modify the execution role by giving DynamoDB and Bedrock access
 
@@ -38,8 +34,6 @@ Deployment Instructions
 7. When QnA Bot stack got deployed successfully, you should have got an email to log in to the QnA Bot Content Design page. Note the password from the email. Go to the Content Design page, you'll find the URL in the CloudFromation output parameter (ContentDesignerURL). The user id is "Admin" and password is shared in the email. You'll be prompted to change the password. Go to the hamburger icon on the top left, and navigate to the Import option. Download the qna.json file, here is the [link](assets/config/qna.json). Import the file in the Content Designer. You'll see "Complete" status in the Import Jobs.
 
 8. In the QnA Bot Content Designer page, go to the hamburger icon on the top left, and navigate to the Settings option. Scroll down to the end, click on Import Settings. Download the settings.json file, here is the [link](assets/config/settings.json). Import the file in the Content Designer. You'll see a success message.
-
-
 
 **Deploy Lex Web UI [Optional]**
 
