@@ -31,9 +31,9 @@ Deployment Instructions
 
 6. For the same Lambda function, add the environment variables as AGENT_ID and AGENT_ALIAS_ID. Get the following input parameters from "Deploy Agent Orchestration workflow": iotqnabotonecallagentid, iotqnabotonecallagentaliasid
 
-7. When QnA Bot stack got deployed successfully, you should have got an email to log in to the QnA Bot Content Design page. Note the password from the email. Go to the Content Design page, you'll find the URL in the CloudFromation output parameter (ContentDesignerURL). The user id is "Admin" and password is shared in the email. You'll be prompted to change the password. Go to the hamburger icon on the top left, and navigate to the Import option. Download the qna.json file, here is the [link](assets/config/qna.json). Import the file in the Content Designer. You'll see "Complete" status in the Import Jobs.
+7. When QnA Bot stack got deployed successfully, you should have got an email to log in to the QnA Bot Content Design page. Note the password from the email. Go to the Content Design page, you'll find the URL in the CloudFromation output parameter (ContentDesignerURL). The user id is "Admin" and password is shared in the email. You'll be prompted to change the password. Go to the hamburger icon on the top left, and navigate to the Import option. Download the qna.json file, here is the [link](../assets/config/qna.json). Import the file in the Content Designer. You'll see "Complete" status in the Import Jobs.
 
-8. In the QnA Bot Content Designer page, go to the hamburger icon on the top left, and navigate to the Settings option. Scroll down to the end, click on Import Settings. Download the settings.json file, here is the [link](assets/config/settings.json). Import the file in the Content Designer. You'll see a success message.
+8. In the QnA Bot Content Designer page, go to the hamburger icon on the top left, and navigate to the Settings option. Scroll down to the end, click on Import Settings. Download the settings.json file, here is the [link](../assets/config/settings.json). Import the file in the Content Designer. You'll see a success message.
 
 **Deploy Lex Web UI [Optional]**
 
