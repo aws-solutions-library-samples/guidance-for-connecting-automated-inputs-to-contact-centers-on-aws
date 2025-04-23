@@ -114,17 +114,17 @@ python create_devices.py  --count 2 --device-prefix aircon
 
 To run simulator: python air_simulator.py
 
-3. Start the devices.
+4. Start the devices.
 
 ```
 python aircon_simulator.py
 ```
 
-4. Go to AWS IoT Console. Click on Domain configurations under Connect in the left menu navigation. Copy the IoT Domain name
+5. Go to AWS IoT Console. Click on Domain configurations under Connect in the left menu navigation. Copy the IoT Domain name
 
 Follow the steps below during actual testing:
 
-5. Inject error. Please see instructions below to inject fault/error.
+6. Inject error. Please see instructions below to inject fault/error.
 
 - Go to the Console. AWS IOT -> MQTT test client -> Subscribe to a Topic -> # . Now you should see the telemetry data.
 
@@ -175,7 +175,7 @@ Effect: Turns off compressor, sets power consumption to 0
 
 ```
 
-6. Inject anomaly.
+7. Inject anomaly.
 
 - Now go to the publish tab --> aircon/commands/aircon_1 (Please change it to your device name if needed.)
 - Publish command to aircon/commands/aircon_1: {"action": "set_wattage_mode", "wattage_mode": "abnormal"}
