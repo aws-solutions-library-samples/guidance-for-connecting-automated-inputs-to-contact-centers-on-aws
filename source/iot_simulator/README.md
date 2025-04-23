@@ -122,6 +122,8 @@ python aircon_simulator.py
 
 4. Go to AWS IoT Console. Click on Domain configurations under Connect in the left menu navigation. Copy the IoT Domain name
 
+Follow the steps below during actual testing:
+
 5. Inject error. Please see instructions below to inject fault/error.
 
 - Go to the Console. AWS IOT -> MQTT test client -> Subscribe to a Topic -> # . Now you should see the telemetry data.
