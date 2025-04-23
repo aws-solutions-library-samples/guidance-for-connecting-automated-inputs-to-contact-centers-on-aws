@@ -23,7 +23,7 @@ Deployment Instructions
 
 3. Continue to deploy the stack by selecting "Next" and checking the boxes to give permission to create the reousrces.
 
-4. In the console, navigate to Lambda and search for a function by the name "**EXTCustomPYHook**". Copy and paste the code from the file in this [repo](source/lambda/iot-qnabot-onecall-custom-hook/CustomPYHook.py) to the Lambda function editor. Re-Deploy the lambda function.
+4. In the console, navigate to Lambda and search for a function by the name "**EXTCustomPYHook**". Copy and paste the code from the file in this [repo](../source/lambda/iot-qnabot-onecall-custom-hook/CustomPYHook.py) to the Lambda function editor. Re-Deploy the lambda function.
 
 ![CustomPYHook](../assets/images/lambda_custompyhook.png)
 
