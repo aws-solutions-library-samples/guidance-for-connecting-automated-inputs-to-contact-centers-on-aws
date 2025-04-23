@@ -45,7 +45,7 @@ Parameters:
     Type: String
 
   IOTDataEndpoint:
-    Description: Please provide the IoT Data Endpoint
+    Description: Please provide the IoT Data Endpoint. Always include https:// at the start of your endpoint URL
     Type: String
 
 Resources:
