@@ -309,7 +309,7 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
 - Deploy the `iot-qnabot-onecall-agent.yml` cloudformation [template](deployment/iot-qnabot-onecall-agent.yml)
 - Provide the following input parameters:
   - ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
-  - Provide your phone number with country code (eg: 1 for US) as DestinationPhoneNumber
+  - Provide your phone number with country code (eg: +1 for US) as DestinationPhoneNumber
   - Provide your email address as RecipientEmailID
   - Provide IOT Endpoint noted in "Deploy IoT Telemetry workflow" as IOTDataEndpoint
   - Provide S3 bucket created as S3DeploymentBucket
