@@ -305,7 +305,7 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
 
 ### Deploy Agent Orchestration workflow
 
-- Enable LLM model access in the AWS Console for the following models: Amazon Titan Embed Text v1, Anthropic Claude Instant v1, Anthropic Claude Haiku 3.0 and Anthropic Claude Sonnet 3.0
+- Enable LLM model access in the Amazon Bedrock Console for the following models: Amazon Titan Embed Text v1, Anthropic Claude Instant v1, Anthropic Claude Haiku 3.0 and Anthropic Claude Sonnet 3.0
 - Deploy the `iot-qnabot-onecall-agent.yml` CloudFormation [template](deployment/iot-qnabot-onecall-agent.yml)
 - Provide the following input parameters:
   - ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
