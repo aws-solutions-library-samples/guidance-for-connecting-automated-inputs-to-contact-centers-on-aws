@@ -67,7 +67,7 @@ After successful connection, proceed with the steps below.
 
 1. After launching your EC2 instance in the AWS Management Console, create an EC2 Instance Profile Role with S3 and IoT Full Access and attach the role to this EC2 instance.
 
-2. Gp to the running EC2 instance, click the 'Connect' button, choose the 'EC2 Instance Connect' tab, and select 'Connect' to open a browser-based terminal, providing instant, secure access to your instance's command-line interface without the need for SSH keys or additional software."
+2. Go to the running EC2 instance, click the 'Connect' button, choose the 'EC2 Instance Connect' tab, and select 'Connect' to open a browser-based terminal, providing instant, secure access to your instance's command-line interface without the need for SSH keys or additional software."
 
 3. Install necessary libraries by running the following commands.
 
