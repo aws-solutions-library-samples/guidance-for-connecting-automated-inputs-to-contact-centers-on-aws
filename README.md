@@ -339,7 +339,17 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
   - Inference output cleaup lambda function ARN - IotQnabotOnecallCleanInferenceOutputLambdaArn
 - Add event configuration to S3 bucket to trigger Inference output cleanup lambda function when Anomaly inference jobs completes successfully
 
-`aws s3api put-bucket-notification-configuration --bucket <REPLACE WITH S3 DEPLOYMENT BUCKET NAME> --notification-configuration '{"LambdaFunctionConfigurations": [{"LambdaFunctionArn": "<REPLACE WITH INFERENCE OUTPUT CLEANUP LAMBDA FUNCTION ARN>",”Events": ["s3:ObjectCreated:*"], "Filter": {"Key":{"FilterRules":[{"Name":"prefix","Value":"telemetry/inference-output/"},{"Name":"suffix","Value”:”.out"}]}}}]}`
+```
+aws lambda add-permission \
+  --function-name <REPLACE WITH INFERENCE OUTPUT CLEANUP LAMBDA FUNCTION ARN> \
+  --statement-id s3invoke \
+  --action "lambda:InvokeFunction" \
+  --principal s3.amazonaws.com \
+  --source-arn <REPLACE WITH S3 BUCKET ARN> \
+  --source-account <REPLACE WITH ACCOUNT NO>
+```
+
+`aws s3api put-bucket-notification-configuration --bucket <REPLACE WITH S3 DEPLOYMENT BUCKET NAME> --notification-configuration '{"LambdaFunctionConfigurations": [{"LambdaFunctionArn": "<REPLACE WITH INFERENCE OUTPUT CLEANUP LAMBDA FUNCTION ARN>","Events": ["s3:ObjectCreated:*"], "Filter": {"Key":{"FilterRules":[{"Name":"prefix","Value":"telemetry/inference-output/"},{"Name":"suffix","Value":".out"}]}}}]}'`
 
 ### Deploy QnA Chat Bot workflow
 
