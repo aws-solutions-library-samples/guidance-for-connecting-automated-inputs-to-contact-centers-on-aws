@@ -45,7 +45,7 @@ Parameters:
     Type: String
 
   IOTDataEndpoint:
-    Description: Please provide the Recipient Email ID
+    Description: Please provide the IoT Data Endpoint
     Type: String
 
 Resources:
