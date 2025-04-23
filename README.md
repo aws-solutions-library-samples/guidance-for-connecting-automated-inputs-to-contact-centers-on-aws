@@ -306,13 +306,15 @@ Please see the instructions [here](/Instructions/Anomaly_readme.md)
 ### Deploy Agent Orchestration workflow
 
 - Enable LLM model access in the AWS Console for the following models: Amazon Titan Embed Text v1, Anthropic Claude Instant v1 and Anthropic Claude Sonnet 3.0
-- Deploy the `iot-qnabot-onecall-agent.yml` cloudformation [template](deployment/iot-qnabot-onecall-agent.yml)
+- Deploy the `iot-qnabot-onecall-agent.yml` CloudFormation [template](deployment/iot-qnabot-onecall-agent.yml)
 - Provide the following input parameters:
   - ConnectInstanceAccessURL, ConnectInstanceId, ContactFlowId, SourcePhoneNumber --> get the values from "Deploy Contact Center workflow" output
   - Provide your phone number with country code (eg: +1 for US) as DestinationPhoneNumber
   - Provide your email address as RecipientEmailID
   - Provide IOT Endpoint noted in "Deploy IoT Telemetry workflow" as IOTDataEndpoint
   - Provide S3 bucket created as S3DeploymentBucket
+- Once the CloudFormation template is deployed, go to Amazon Bedrock Console. Navigate to Knowledge Bases under Builder tools in the left menu. Select the "iot-qnabot-onecall-kb" Knowledge Base.
+- Under Data source select "iot-qnabot-onecall-data-source" and click on "Sync". Once sync is complete, Status will show available and Last sync time will show the sync date and time.
 
 ### Deploy Error & Anomaly workflow
 
