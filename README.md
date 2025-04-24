@@ -368,15 +368,20 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
   - Go to iot_simulator directory
     `cd iot_simulator`
   - Run the aircon_simulator and inject error:
-    - go to "Steps to Deploy" section in [readme](source/iot_simulator/README.md) file and run step 4 and 6
+    - Go to "Steps to Deploy" section in [readme](source/iot_simulator/README.md) file and run step 4 and 6
   - Review the Knowledge Base ([KB](assets/data/Troubleshooting_Guide.docx)) for the actions
   - Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB), d/ clear the fault in IoT Core device shadow (if it's instructed in the KB)
 
 ### Run Anomaly flow
 
 - Inject anomaly in MQTT Client:
-- Wait for an hour
-- Review the Knowledge Base (KB) for the actions
+  - Go to EC2 console and connect "oneCallAirConSimulator" EC2 instance using EC2 Instance Connect.
+  - Go to iot_simulator directory
+    `cd iot_simulator`
+  - Run the aircon_simulator and inject anomaly:
+    - Go to "Steps to Deploy" section in [readme](source/iot_simulator/README.md) file and run step 4 and 7
+  - Wait for an hour
+  - Review the Knowledge Base ([KB](assets/data/Troubleshooting_Guide.docx)) for the actions
 - Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB)
 
 ### Run queries against the QnA Bot
