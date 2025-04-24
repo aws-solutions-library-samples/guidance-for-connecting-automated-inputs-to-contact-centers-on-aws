@@ -126,7 +126,7 @@ Follow the steps below during actual testing:
 
 6. Inject error. Please see instructions below to inject fault/error.
 
-- Go to the Console. AWS IOT -> MQTT test client -> Subscribe to a Topic -> # . Now you should see the telemetry data.
+- Go to the AWS Console. AWS IOT -> MQTT test client -> Subscribe to a Topic -> # . Now you should see the telemetry data.
 
 - Now go to the publish tab, change the Topic name as: aircon/commands/aircon_1 (Please change it to your device name if needed.)
 
@@ -177,6 +177,7 @@ Effect: Turns off compressor, sets power consumption to 0
 
 7. Inject anomaly.
 
+- Go to the AWS Console. AWS IOT -> MQTT test client -> Subscribe to a Topic -> # . You should see the telemetry data.
 - Now go to the publish tab --> aircon/commands/aircon_1 (Please change it to your device name if needed.)
 - Publish command to aircon/commands/aircon_1: {"action": "set_wattage_mode", "wattage_mode": "abnormal"}
 - Publish command to aircon/commands/aircon_1: {"action": "set_wattage_mode", "wattage_mode": "normal"}
