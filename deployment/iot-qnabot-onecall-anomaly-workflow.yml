@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: CloudFormation template for IoT OneCall QnA Bot Anomaly workflow
+Description: CloudFormation template for IoT OneCall QnA Bot Anomaly workflow SO9002
 Parameters:
   S3DeploymentBucket:
     Description: Provide S3 bucket name that contains lambda scripts and configuration
