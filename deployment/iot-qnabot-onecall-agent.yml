@@ -1,4 +1,4 @@
-Description: Stack for creating the IoT QnABot Bedrock Agent.
+Description: Stack for creating the IoT QnABot Bedrock Agent SO9002.
 
 Parameters:
   FoundationModelName:
