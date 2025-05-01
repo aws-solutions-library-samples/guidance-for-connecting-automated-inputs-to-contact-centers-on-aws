@@ -390,7 +390,6 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
   - Go to the CloudFromat stack for the Deploy QnA Chat Bot workflow
   - Click on the ClientURL in the Outputs tab
   - Use Admin and relevant password to open the QnA Bot interface
-- Ask question about a device: "Please tell me about the device aircon_1"
 - Ask question about an error: "Please tell me about the error W1"
 - Ask question about anomaly details: "Please tell me about the anomaly for the device $device_id, unique id $unique_id"
   - _Replace $device_id and $unique_id with actual values retrieved from the device error table in DynamoDB or email_
