@@ -35,6 +35,10 @@ Deployment Instructions
 
 8. In the QnA Bot Content Designer page, go to the hamburger icon on the top left, and navigate to the Settings option. Scroll down to the end, click on Import Settings. Download the settings.json file, here is the [link](../assets/config/settings.json). Import the file in the Content Designer. You'll see a success message.
 
+9. In the QnA Bot Content Designer page, go to the three vertical dots icon on the top right and click on LEX REBUILD.
+
+![QnA Bot Lex Rebuild](../assets/images/QnABot_LexRebuild.png)
+
 **Deploy Lex Web UI [Optional]**
 
 1. Deploy the following stack so that there is a UI for the Lex agent. https://github.com/aws-samples/aws-lex-web-ui
