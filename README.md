@@ -7,6 +7,8 @@ This Guidance shows how to connect automated data sources to contact center syst
 ### Required
 
 1. [Overview](#Overview)
+   - [Amazon Bedrock Agents](#Amazon-Bedrock-Agents)
+   - [Amazon Bedrock AgentCore](#Amazon-Bedrock-AgentCore)
    - [Cost](#Cost)
 2. [Prerequisites](#Prerequisites)
    - [Operating System](#Operating-System)
@@ -23,19 +25,22 @@ This Guidance shows how to connect automated data sources to contact center syst
 
 This Guidance shows how to connect automated data sources to contact center systems. These sources could include Internet of Things (IoT) devices, interactive voice response (IVR) systems, customer relationship management (CRM) alerts, and automated quality monitoring tools. IoT integration enables three key benefits: real-time detection of errors and anomalies, automated incident resolution, and direct integration with omni-channel contact centers. Using artificial intelligence (AI), this workflow reduces average response time and helps to resolve common issues without human intervention.
 
-![Architecture diagram](assets/images/AWS_IoT_QnABot_Onecall_Architecture.png)
 
-The architecture can be broadly divided into 5 workflows:
+## Amazon Bedrock Agents
 
-- 1/ IoT Telemetry workflow
-- 2/ Error & Anomaly workflow
-- 3/ Agent Orchestration
-- 4/ Contact Center workflow
-- 5/ QnA Chat Bot
+![Architecture Diagram Using Amazon Bedrock Agents](assets/images/AWS_IoT_QnABot_Onecall_Architecture.png)
+
+This architecture can be broadly divided into 5 workflows:
+
+- 1\) IoT Telemetry workflow
+- 2\) Error & Anomaly workflow
+- 3\) Agent Orchestration
+- 4\) Contact Center workflow
+- 5\) QnA Chat Bot
 
 The workflows are illustrated below:
 
-### 1/ IoT Telemetry workflow
+### 1\) IoT Telemetry Workflow
 
 IoT devices are setup along with the simulator to publish telemetry data in IoT Core
 
@@ -52,10 +57,10 @@ IoT devices are setup along with the simulator to publish telemetry data in IoT 
 - **AWS IoT Rule**
   - IoT Rules are part of AWS IoT Core service.
   - There are two IoT Rules:
-    - 1/ if there is any error it invokes a Lambda function (iot-qnabot-onecall-error-handler) with error details,
-    - 2/ telemetry data is sent to Amazon Data Firehose
+    - 1\) if there is any error it invokes a Lambda function (iot-qnabot-onecall-error-handler) with error details,
+    - 2\) telemetry data is sent to Amazon Data Firehose
 
-### 2/ Error & Anomaly workflow
+### 2\) Error & Anomaly Workflow
 
 IoT telemetry data is processed by streaming data processing pipelines. If errors are emitted by the IoT devices Bedrock agent is invoked to take actions as described in the Troubleshooting guide in the Knowledge Base. Telemetry data is processed to detect any anomalies using ML models in Sagemaker. Bedrock agent is invoked when anomalies are found. Bedrock agent finds possible resolution for the anomalies from knowledge bases and notifies the contact center with relevant information.
 
@@ -88,9 +93,9 @@ IoT telemetry data is processed by streaming data processing pipelines. If error
   - Reads inference output from S3 for a provided look back period
   - Invokes Bedrock agent with relevant details if any anomalies were identified by ML model
 
-### 3/ Agent Orchestration
+### 3\) Agent Orchestration
 
-Bedrock agent can recieve 3 types of requests: 1/ ask to take action when error is emitted by a device, 2/ ask to take action when anomaly is detected, 3/ answer user queries about the error, anolamly or telemetry data
+Bedrock agent can receive 3 types of requests: 1\) ask to take action when error is emitted by a device, 2\) ask to take action when anomaly is detected, 3\) answer user queries about the error, anolamly or telemetry data
 
 **Components**
 
@@ -104,21 +109,21 @@ Bedrock agent can recieve 3 types of requests: 1/ ask to take action when error 
 - **AWS Lambda function - iot-qnabot-onecall-triage**
 
   - It can take 3 actions based on the ask:
-    - 1/ log ticket in the error table in DynamoDB, sends email to the user
-    - 2/ call the Amazon Connect Contact Flow to initiate a voice call to the site operator
-    - 3/ call AWS IoT Core and publish a message to clear the fault
+    - 1\) log ticket in the error table in DynamoDB, sends email to the user
+    - 2\) call the Amazon Connect Contact Flow to initiate a voice call to the site operator
+    - 3\) call AWS IoT Core and publish a message to clear the fault
 
 - **AWS Lambda function - iot-qnabot-onecall-user-query**
 
   - It can take 2 actions based on the ask:
-    - 1/ fetch ticket data from the error table in DynamoDB
-    - 2/ fetch telemetry data from the S3 bucket
+    - 1\) fetch ticket data from the error table in DynamoDB
+    - 2\) fetch telemetry data from the S3 bucket
 
 - **Amazon Bedrock KnowledgeBase**
   - It stores the embeddings for the Troubleshooting doc
   - It uses OpenSearch Serverless vector DB
 
-### 4/ Contact Center workflow
+### 4\) Contact Center Workflow
 
 Contact Center workflow is used to contact the site operators in case of high priority errors so that site operator can take necessary actions
 
@@ -151,7 +156,7 @@ Contact Center workflow is used to contact the site operators in case of high pr
   - Links to the 24/7 hours of operation
   - Configurable queue name through parameters
 
-### 5/ QnA Chat Bot
+### 5\) QnA Chat Bot
 
 Site operator interacts with the QnA Chat Bot to find the device details, error or anamaly information and telemetry data
 
@@ -170,9 +175,52 @@ Please refer to the QnA Bot [guidance](https://aws.amazon.com/solutions/implemen
 - **Amazon Bedrock Knowledge Base**
   - Troubleshooting guide is stored in the Knowledge Base
 
+
+## Amazon Bedrock AgentCore
+
+![Architecture Diagram Using Amazon Bedrock AgentCore](assets/images/AWS-IoT-OneCall-Architecture-Amazon-Bedrock-AgentCore.png)
+
+Similar to the architecture diagram and its workflows using Amazon Bedrock Agents, this architecture replaces the Amazon Bedrock Agents Agent Orchestration with Amazon Bedrock AgentCore.
+
+![Architecture Diagram for the AI Agent with Amazon Bedrock AgentCore](assets/images/AWS-IoT-OneCall-Architecture-AI-Agent-AgentCore.png)
+
+### 3\) Agent Orchestration
+
+The AI agent can receive 3 types of requests: 1\) ask to take action when error is emitted by a device, 2\) ask to take action when anomaly is detected, 3\) answer user queries about the error, anomaly or telemetry data.
+
+**Components**
+
+- **Amazon Bedrock AgentCore Agent**
+
+  - The AgentCore Agent, built using Strands Agents, has a Knowledge Base and 2 action groups.
+  - The AI Agent is deployed on Amazon Bedrock AgentCore Runtime.
+  - AWS Lambda functions are exposed as MCP Servers in Amazon Bedrock AgentCore Gateway.
+  - The Knowledge Base contains the Troubleshooting guide. It has the error details, troubleshooting steps, actions by individual error or anomaly.
+  - One of the action groups takes actions based on the error or anomaly.
+  - The other action groups responds to user queries.
+  - Amazon Bedrock AgentCore Observability tracks and monitors all AI Agent's activities.
+
+- **AWS Lambda function - iot-qnabot-onecall-triage**
+
+  - It can take 3 actions based on the ask:
+    - 1\) log ticket in the error table in DynamoDB, sends email to the user.
+    - 2\) call the Amazon Connect Contact Flow to initiate a voice call to the site operator.
+    - 3\) call AWS IoT Core and publish a message to clear the fault.
+
+- **AWS Lambda function - iot-qnabot-onecall-user-query**
+
+  - It can take 2 actions based on the ask:
+    - 1\) fetch ticket data from the error table in DynamoDB.
+    - 2\) fetch telemetry data from the S3 bucket.
+
+- **Amazon Bedrock Knowledge Base**
+  - It stores the embeddings for the Troubleshooting doc.
+  - It uses OpenSearch Serverless vector DB.
+
+
 ### Cost
 
-_You are responsible for the cost of the AWS services used while running this Guidance. As of Apr, 2025, the cost for running this Guidance with the default settings in the US East (N. Virginia) AWS Region is approximately $1,470 per month._
+_You are responsible for the cost of the AWS services used while running this Guidance. As of Apr, 2025, the cost for running this Guidance with the default settings in the US East (N. Virginia) AWS Region is approximately $1,480 per month._
 
 Assumptions:
 
@@ -196,9 +244,10 @@ The following table provides a sample cost breakdown for deploying this Guidance
 | Amazon OpenSearch Serverless | Bedrock KB, 1 Indexing OCU, 1 Search and Query OCU, 1 GB data                                                                                                                     | $ 350.42         |
 | Amazon DynamoDB              | 100 writes and 100 reads per day                                                                                                                                                  | $ 0.25           |
 | Amazon Bedrock               | Bedrock Agent cost for 150 agentic flow per month, 5 invoke model (Anthropic Claude Sonnet 3) calls per agentic flow, input token = 62,500 and output tokens = 20,000 per call    | $ 0.25           |
+| Amazon Bedrock AgentCore     | Gateway (750 API invocations, 2 tools indexed), Runtime (2 vCPU, 4GB RAM, ~10 hours), Observability (CloudWatch)                                                                  | $ 7.50           |
 | Amazon Connect               | 1 DID Phone Number, Outbound call duration = 1 minute                                                                                                                             | $ 2.50           |
 | QnA Bot                      | Refer to [QnA Bot estimate](https://docs.aws.amazon.com/solutions/latest/qnabot-on-aws/cost.html), considered default basic deployment and Bedrock for text embedding and LLM Q&A | $ 696.06         |
-| **Total Cost**               |                                                                                                                                                                                   | **$ 1468.17**    |
+| **Total Cost**               |                                                                                                                                                                                   | **$ 1475.67**    |
 
 ## Prerequisites
 
@@ -370,7 +419,7 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
   - Run the aircon_simulator and inject error:
     - Go to "Steps to Deploy" section in [readme](source/iot_simulator/README.md) file and run step 4 and 6
   - Review the Knowledge Base ([KB](assets/data/Troubleshooting_Guide.docx)) for the actions
-  - Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB), d/ clear the fault in IoT Core device shadow (if it's instructed in the KB)
+  - Ensure the actions are taken as mentioned in the KB: a\) review the ticket in DynamoDB table, b\) review the email, c\) recieve a call (if it's instructed in the KB), d\) clear the fault in IoT Core device shadow (if it's instructed in the KB)
 
 ### Run Anomaly flow
 
@@ -382,7 +431,7 @@ To deploy the QnABot chat experience please follow the [instructions](Instructio
     - Go to "Steps to Deploy" section in [readme](source/iot_simulator/README.md) file and run step 4 and 7
   - Wait for an hour
   - Review the Knowledge Base ([KB](assets/data/Troubleshooting_Guide.docx)) for the actions
-- Ensure the actions are taken as mentioned in the KB: a/ review the ticket in DynamoDB table, b/ review the email, c/ recieve a call (if it's instructed in the KB)
+- Ensure the actions are taken as mentioned in the KB: a\) review the ticket in DynamoDB table, b\) review the email, c\) recieve a call (if it's instructed in the KB)
 
 ### Run queries against the QnA Bot
 
@@ -433,3 +482,4 @@ Satveer Khurpa\
 Steve Krems\
 Sushma Gopalakrishnan\
 Wael Dimassi
+Soniya Gaikwad
